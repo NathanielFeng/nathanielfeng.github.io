@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!-- title -->
+
+
+    
+
+<!-- keywords -->
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="author" content="Jannish">
+    <meta name="renderer" content="webkit">
+    <meta name="copyright" content="Jannish">
+    
+        <meta name="keywords" content="hexo,hexo-theme,hexo-blog">
+    
+    <meta name="description" content="">
+    <meta name="description" content="「现代计算机图形学入门」光线追踪 1. 阴影映射(Shadow Mapping) 一种图像空间算法，在阴影计算的时候不需要知道场景的几何信息。只能处理点光源、方向光源（要么在阴影里，要么不在，也叫硬阴影）！ 关键思想：不在阴影里的点一定被相机和光源所看到！ Pass 1：从光源处渲染 从光源看向场景，记录看到的任何点的深度是多少。 Pass 2A：从眼睛处渲染 实际从场景的相机出发，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="「现代计算机图形学入门」光线追踪">
+<meta property="og:url" content="https://nathanielfeng.github.io/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/index.html">
+<meta property="og:site_name" content="Jannish Blog">
+<meta property="og:description" content="「现代计算机图形学入门」光线追踪 1. 阴影映射(Shadow Mapping) 一种图像空间算法，在阴影计算的时候不需要知道场景的几何信息。只能处理点光源、方向光源（要么在阴影里，要么不在，也叫硬阴影）！ 关键思想：不在阴影里的点一定被相机和光源所看到！ Pass 1：从光源处渲染 从光源看向场景，记录看到的任何点的深度是多少。 Pass 2A：从眼睛处渲染 实际从场景的相机出发，">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/HardSoftShadow.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/101_RayCasting.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/101_Recursive%20Ray%20Tracing.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/101_RayIntersectionWithSphere.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/MollerTrumboreAlgorithm.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RayIntersectWithAABB.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/BuildAccelerationGrid.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RaySceneIntersetion.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/KD-Tree.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/BVH.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/LightMeasurements.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SolidAngles.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/IrradianceFalloff.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/Radiance.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/IncidentRadiance.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/ExitingRadiance.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/IrradianceVSRadiance.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/ReflectAtPoint.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/BRDF.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/ReflectionEquation.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RecursiveEquation.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RenderingEquation.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/UnderstandReflectAtPoint1.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/UnderstandReflectAtPoint2.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/UnderstandReflectAtPoint3.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/UnderstandReflectAtPoint4.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/UnderstandReflectAtPoint5.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/UnderstandReflectAtPoint6.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/UnderstandReflectAtPoint7.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RayTracingProblem1.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RayTracingProblem2.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SimpleMonteCarloSolution1.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SimpleMonteCarloSolution2.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SimpleMonteCarloSolution3.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/GlobalIllumination.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/LightExplosion.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/PathTracing.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/multipleSampling.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RayGeneration.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RussianRoulette1.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RussianRoulette2.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SampleLight1.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SampleLight2.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SampleLight3.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SampleLight4.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SampleLight5.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SampleLight6.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SampleLight7.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/ThingsUnConvered.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/ThingsUnConvered2.png">
+<meta property="article:published_time" content="2022-11-04T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-09-05T01:21:40.681Z">
+<meta property="article:author" content="Jannish">
+<meta property="article:tag" content="现代计算机图形学入门">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://nathanielfeng.github.io/images/HardSoftShadow.png">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="icon" href="/assets/favicon.ico">
+    
+    <title>「现代计算机图形学入门」光线追踪 · Jannish Blog</title>
+    <!-- /*! loadCSS. [c]2017 Filament Group, Inc. MIT License */
+/* This file is meant as a standalone workflow for
+- testing support for link[rel=preload]
+- enabling async CSS loading in browsers that do not support rel=preload
+- applying rel preload css once loaded, whether supported or not.
+*/ -->
+<script>
+    (function (w) {
+        'use strict'
+        // rel=preload support test
+        if (!w.loadCSS) {
+            w.loadCSS = function () {}
+        }
+        // define on the loadCSS obj
+        var rp = (loadCSS.relpreload = {})
+        // rel=preload feature support test
+        // runs once and returns a function for compat purposes
+        rp.support = (function () {
+            var ret
+            try {
+                ret = w.document.createElement('link').relList.supports('preload')
+            } catch (e) {
+                ret = false
+            }
+            return function () {
+                return ret
+            }
+        })()
+
+        // if preload isn't supported, get an asynchronous load by using a non-matching media attribute
+        // then change that media back to its intended value on load
+        rp.bindMediaToggle = function (link) {
+            // remember existing media attr for ultimate state, or default to 'all'
+            var finalMedia = link.media || 'all'
+
+            function enableStylesheet() {
+                link.media = finalMedia
+            }
+
+            // bind load handlers to enable media
+            if (link.addEventListener) {
+                link.addEventListener('load', enableStylesheet)
+            } else if (link.attachEvent) {
+                link.attachEvent('onload', enableStylesheet)
+            }
+
+            // Set rel and non-applicable media type to start an async request
+            // note: timeout allows this to happen async to let rendering continue in IE
+            setTimeout(function () {
+                link.rel = 'stylesheet'
+                link.media = 'only x'
+            })
+            // also enable media after 3 seconds,
+            // which will catch very old browsers (android 2.x, old firefox) that don't support onload on link
+            setTimeout(enableStylesheet, 3000)
+        }
+
+        // loop through link elements in DOM
+        rp.poly = function () {
+            // double check this to prevent external calls from running
+            if (rp.support()) {
+                return
+            }
+            var links = w.document.getElementsByTagName('link')
+            for (var i = 0; i < links.length; i++) {
+                var link = links[i]
+                // qualify links to those with rel=preload and as=style attrs
+                if (
+                    link.rel === 'preload' &&
+                    link.getAttribute('as') === 'style' &&
+                    !link.getAttribute('data-loadcss')
+                ) {
+                    // prevent rerunning on link
+                    link.setAttribute('data-loadcss', true)
+                    // bind listeners to toggle media back
+                    rp.bindMediaToggle(link)
+                }
+            }
+        }
+
+        // if unsupported, run the polyfill
+        if (!rp.support()) {
+            // run once at least
+            rp.poly()
+
+            // rerun poly on an interval until onload
+            var run = w.setInterval(rp.poly, 500)
+            if (w.addEventListener) {
+                w.addEventListener('load', function () {
+                    rp.poly()
+                    w.clearInterval(run)
+                })
+            } else if (w.attachEvent) {
+                w.attachEvent('onload', function () {
+                    rp.poly()
+                    w.clearInterval(run)
+                })
+            }
+        }
+
+        // commonjs
+        if (typeof exports !== 'undefined') {
+            exports.loadCSS = loadCSS
+        } else {
+            w.loadCSS = loadCSS
+        }
+    })(typeof global !== 'undefined' ? global : this)
+</script>
+
+    <style type="text/css">
+    @font-face {
+        font-family: 'Oswald-Regular';
+        src: url("/font/Oswald-Regular.ttf");
+    }
+
+    body {
+        margin: 0;
+    }
+
+    header,
+    footer,
+    .back-top,
+    .sidebar,
+    .container,
+    .site-intro-meta,
+    .toc-wrapper {
+        display: none;
+    }
+
+    .site-intro {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        /* height: 50vh; */
+        overflow: hidden;
+    }
+
+    .site-intro-placeholder {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        left: 0;
+        width: calc(100% + 300px);
+        height: 100%;
+        background: repeating-linear-gradient(-45deg, #444 0, #444 80px, #333 80px, #333 160px);
+        background-position: center center;
+        transform: translate3d(-226px, 0, 0);
+        animation: gradient-move 2.5s ease-out 0s infinite;
+    }
+
+    @keyframes gradient-move {
+        0% {
+            transform: translate3d(-226px, 0, 0);
+        }
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+</style>
+
+    <link rel="preload" href="/css/style.css?v=20211217" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/css/dark.css?v=20211217" as="style">
+    <link rel="stylesheet" href="/css/dark.css">
+    <link rel="stylesheet" href="/css/mobile.css?v=20211217" media="(max-width: 960px)">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" as="script">
+    <link rel="preload" href="/scripts/main.js?v=20211217" as="script">
+    <link rel="preload" href="/scripts/dark.js?v=20211217" as="script">
+    <link rel="preload" href="/font/Oswald-Regular.ttf" as="font" crossorigin>
+    <link rel="preload" href="https://at.alicdn.com/t/font_327081_1dta1rlogw17zaor.woff" as="font" crossorigin>
+    <!-- algolia -->
+    
+    <!-- 百度统计  -->
+    
+    <!-- Google tag (gtag.js) -->
+    
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script type="text/javascript">
+        if (typeof window.$ == undefined) {
+            console.warn('jquery load from jsdelivr failed, will load local script')
+            document.write('<script src="/lib/jquery.min.js" />')
+        }
+    </script>
+    
+        <body class="post-body">
+    
+        <!-- header -->
+        <header class="header header-mobile">
+    <!-- top read progress line -->
+    <div class="header-element">
+        <div class="read-progress"></div>
+    </div>
+    <!-- sidebar menu button -->
+    <div class="header-element">
+        
+            <div class="header-sidebar-menu">
+        
+            
+                <div style="padding-left: 1px;">&#xe775;</div>
+            
+        </div>
+    </div>
+    <!-- header actions -->
+    <div class="header-actions">
+        <!-- theme mode switch button -->
+        <span class="header-theme-btn header-element">
+            <i class="fas fa-adjust"></i>
+        </span>
+        <!-- back to home page text -->
+        <span class="home-link header-element">
+            <a href=/>Jannish Blog</a>
+        </span>
+    </div>
+    <!-- toggle banner for post layout -->
+    
+        
+            <div class="banner">
+        
+            <div class="blog-title header-element">
+                <a href="/">Jannish Blog</a>
+            </div>
+            <div class="post-title header-element">
+                <a href="#" class="post-name">「现代计算机图形学入门」光线追踪</a>
+            </div>
+        </div>
+    
+</header>
+
+        <!-- fixed footer -->
+        <footer class="footer-fixed">
+    <!-- back to top button -->
+    <div class="footer-fixed-element">
+        
+            <div class="back-top back-top-hidden">
+        
+        
+            <div>&#xe639;</div>
+        
+        </div>
+    </div>
+</footer>
+
+        <!-- wrapper -->
+        <div class="wrapper">
+            <div class="site-intro" style="
+
+
+
+
+
+
+
+    height:50vh;
+
+">
+    
+    <!-- 主页  -->
+    
+        
+    <!-- 404页  -->
+    
+    <div class="site-intro-placeholder"></div>
+    <div class="site-intro-img" style="background-image: url(/intro/post-bg.jpg)"></div>
+    <div class="site-intro-meta">
+        <!-- 标题  -->
+        <h1 class="intro-title">
+            <!-- 主页  -->
+            
+                「现代计算机图形学入门」光线追踪
+            <!-- 404 -->
+            
+        </h1>
+        <!-- 副标题 -->
+        <p class="intro-subtitle">
+            <!-- 主页副标题  -->
+            
+                
+            <!-- 404 -->
+            
+        </p>
+        <!-- 文章页 meta -->
+        
+            <div class="post-intros">
+                <!-- 文章页标签  -->
+                
+                    <div class= post-intro-tags >
+    
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags="现代计算机图形学入门">现代计算机图形学入门</a>
+    
+</div>
+
+                
+                <!-- 文章字数统计 -->
+                
+                <div class="post-intro-meta">
+                    <!-- 撰写日期 -->
+                    <span class="iconfont-archer post-intro-calander">&#xe676;</span>
+                    <span class="post-intro-time">2022/11/05</span>
+                    <!-- busuanzi -->
+                    
+                        <span id="busuanzi_container_page_pv" class="busuanzi-pv">
+                            <span class="iconfont-archer post-intro-busuanzi">&#xe602;</span>
+                            <span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    
+                    <!-- 文章分享 -->
+                    <span class="share-wrapper">
+                        <span class="iconfont-archer share-icon">&#xe71d;</span>
+                        <span class="share-text">Share</span>
+                        <ul class="share-list">
+                            <li class="iconfont-archer share-qr" data-type="qr">&#xe75b;
+                                <div class="share-qrcode"></div>
+                            </li>
+                            <li class="iconfont-archer" data-type="weibo">&#xe619;</li>
+                            <li class="iconfont-archer" data-type="qzone">&#xe62e;</li>
+                            <li class="iconfont-archer" data-type="twitter">&#xe634;</li>
+                            <li class="iconfont-archer" data-type="facebook">&#xe67a;</li>
+                        </ul>
+                    </span>
+                </div>
+            </div>
+        
+    </div>
+</div>
+
+            <script>
+  // get user agent
+  function getBrowserVersions() {
+    var u = window.navigator.userAgent
+    return {
+      userAgent: u,
+      trident: u.indexOf('Trident') > -1, //IE内核
+      presto: u.indexOf('Presto') > -1, //opera内核
+      webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+      gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+      mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+      ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+      android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+      iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者安卓QQ浏览器
+      iPad: u.indexOf('iPad') > -1, //是否为iPad
+      webApp: u.indexOf('Safari') == -1, //是否为web应用程序，没有头部与底部
+      weixin: u.indexOf('MicroMessenger') == -1, //是否为微信浏览器
+      uc: u.indexOf('UCBrowser') > -1, //是否为android下的UC浏览器
+    }
+  }
+  var browser = {
+    versions: getBrowserVersions(),
+  }
+  console.log('userAgent: ' + browser.versions.userAgent)
+
+  // callback
+  function fontLoaded() {
+    console.log('font loaded')
+    if (document.getElementsByClassName('site-intro-meta')) {
+      document
+        .getElementsByClassName('intro-title')[0]
+        .classList.add('intro-fade-in')
+      document
+        .getElementsByClassName('intro-subtitle')[0]
+        .classList.add('intro-fade-in')
+      var postIntros = document.getElementsByClassName('post-intros')[0]
+      if (postIntros) {
+        postIntros.classList.add('post-fade-in')
+      }
+    }
+  }
+
+  // UC不支持跨域，所以直接显示
+  function asyncCb() {
+    if (browser.versions.uc) {
+      console.log('UCBrowser')
+      fontLoaded()
+    } else {
+      WebFont.load({
+        custom: {
+          families: ['Oswald-Regular'],
+        },
+        loading: function () {
+          // 所有字体开始加载
+          // console.log('font loading');
+        },
+        active: function () {
+          // 所有字体已渲染
+          fontLoaded()
+        },
+        inactive: function () {
+          // 字体预加载失败，无效字体或浏览器不支持加载
+          console.log('inactive: timeout')
+          fontLoaded()
+        },
+        timeout: 5000, // Set the timeout to two seconds
+      })
+    }
+  }
+
+  function asyncErr() {
+    console.warn('script load from CDN failed, will load local script')
+  }
+
+  // load webfont-loader async, and add callback function
+  function async(u, cb, err) {
+    var d = document,
+      t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0]
+    o.src = u
+    if (cb) {
+      o.addEventListener(
+        'load',
+        function (e) {
+          cb(null, e)
+        },
+        false
+      )
+    }
+    if (err) {
+      o.addEventListener(
+        'error',
+        function (e) {
+          err(null, e)
+        },
+        false
+      )
+    }
+    s.parentNode.insertBefore(o, s)
+  }
+
+  var asyncLoadWithFallBack = function (arr, success, reject) {
+    var currReject = function () {
+      reject()
+      arr.shift()
+      if (arr.length) async(arr[0], success, currReject)
+    }
+
+    async(arr[0], success, currReject)
+  }
+
+  asyncLoadWithFallBack(
+    [
+      'https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js',
+      'https://cdn.bootcss.com/webfont/1.6.28/webfontloader.js',
+      "/lib/webfontloader.min.js",
+    ],
+    asyncCb,
+    asyncErr
+  )
+</script>
+
+            <img class="loading" src="/assets/loading.svg" style="display: block; margin: 6rem auto 0 auto; width: 6rem; height: 6rem;" />
+            <div class="container container-unloaded">
+                <main class="main post-page">
+    <article class="article-entry">
+        <h1
+id="现代计算机图形学入门光线追踪">「现代计算机图形学入门」光线追踪</h1>
+<h2 id="阴影映射shadow-mapping">1. 阴影映射(Shadow Mapping)</h2>
+<p>一种图像空间算法，在阴影计算的时候不需要知道场景的几何信息。只能处理点光源、方向光源（要么在阴影里，要么不在，也叫硬阴影）！</p>
+<p><strong>关键思想</strong>：不在阴影里的点一定被相机和光源所看到！</p>
+<p><strong>Pass 1：从光源处渲染</strong></p>
+<p>从光源看向场景，记录看到的任何点的深度是多少。</p>
+<p><strong>Pass 2A：从眼睛处渲染</strong></p>
+<p>实际从场景的相机出发，再次渲染场景。</p>
+<p><strong>Pass 2B：投影至光源</strong></p>
+<p>可见的点重新投影回光源，从光源记录的深度图上去寻找这个点，然后比较记录的深度和当前的深度一致还是不一致。</p>
+<p><strong>问题</strong>：</p>
+<ol type="1">
+<li>浮点数的精度问题；</li>
+<li>质量取决于<strong>Shadow Map</strong>分辨率，太低阴影会有锯齿；</li>
+<li>硬阴影（仅点光源）；</li>
+</ol>
+<p><strong>硬阴影 vs. 软阴影</strong></p>
+<p><img src="\images\HardSoftShadow.png"/></p>
+<p>Umbra - 本影，Penumbra — 半影；</p>
+<p>说明两件事：1. 阴影程度取决于你能看到多少的光源； 2.
+如果有软阴影，光源一定有大小；</p>
+<hr />
+<p><strong>为什么需要光线追踪？</strong></p>
+<ul>
+<li><p>光栅化不能很好处理全局效果：软阴影、Glossy反射（类似铜镜，磨砂的质感）、间接光照</p></li>
+<li><p>光栅化很快，但是质量相对较低（快速的近似）</p></li>
+</ul>
+<p>光线追踪很准确，但是很慢，一帧需要大约10k个CPU花费一小时来渲染。</p>
+<h2 id="基础光线追踪算法">2. 基础光线追踪算法</h2>
+<p><strong>对于光线的三种想法：</strong></p>
+<ol type="1">
+<li>光沿直线传播（虽然是错的）</li>
+<li>光线不会和其他光线发生碰撞（虽然也是错的）</li>
+<li>光线从光源出发经过反射、折射等等最终到达眼睛（光线的可逆性）</li>
+</ol>
+<p><strong>光线投射（Appel 1968）：</strong></p>
+<ol type="1">
+<li>对于屏幕上每个像素，从眼睛出发，投射一条光线穿过该像素，光线最终到达一个物体点</li>
+<li>从物体点发射一条到光源的线，如果可以到达，说明从光源到眼睛存在一条光线回路，否则物体点在阴影处</li>
+</ol>
+<p><img src="\images\101_RayCasting.png" /></p>
+<ol start="3" type="1">
+<li>对物体点进行着色，计算该点的像素点并写回屏幕</li>
+</ol>
+<h2 id="递归的whitted-style光线追踪">3.
+递归的(Whitted-Style)光线追踪</h2>
+<p><strong>针孔摄像机模型</strong></p>
+<p>对于一个像素，从眼睛出发，发出一条穿过像素的光线（<strong>primary
+ray</strong>），到达场景中第一个最近的交点，接着考虑这个点会不会被照亮，我们从这点向光源连一条线（<strong>shadow
+ray</strong>）。不能被照亮说明在阴影里。</p>
+<p>由于光源会发生折射和反射（<strong>secondary
+ray</strong>），在每一个弹射点我们都会计算着色的值。如果光源可以照亮任何一个弹射点，就把每一个弹射点计算出的着色的值都加到像素的值里面去。</p>
+<p>每次弹射会有能量损失，否则图像就会过曝。</p>
+<p><img src="\images\101_Recursive%20Ray%20Tracing.png" /></p>
+<h2 id="光线-表面相交">4. 光线-表面相交</h2>
+<p>光线由一个起点 <span class="math inline">\(o\)</span> 和一个方向向量
+<span class="math inline">\(d\)</span> 表示</p>
+<p>光线方程：$r(t)=o + td t <span class="math inline">\(，\)</span>r $
+表示沿着光线的点，<span class="math inline">\(t\)</span> 表示时间</p>
+<h3 id="光线和球求交">4.1 光线和球求交</h3>
+<p><img src="\images\101_RayIntersectionWithSphere.png" align="right"/>球方程：<span
+class="math inline">\((p-c)^2-R^2=0\)</span></p>
+<p>联立光线方程和球方程，有：<span
+class="math inline">\((o+td-c)^2-R^2=0\)</span></p>
+<p>上面为一个一元二次方程，解出 <span class="math inline">\(t\)</span>
+即可</p>
+<h3 id="推广到一般的隐式表面函数">4.2 推广到一般的隐式表面函数</h3>
+<p>通用隐式表面：$p:f(p)=0 $</p>
+<p>代入得：<span
+class="math inline">\(f(o+td)=0\)</span>，要求能够解出<strong>正实根</strong></p>
+<h3 id="光线和三角形网格求交">4.3 光线和三角形网格求交</h3>
+<p>应用：渲染（可见性，阴影，光照）、几何（内外测试）</p>
+<p>简单想法：和每一个三角形求交</p>
+<h4 id="三角形和光线求交">4.3.1 三角形和光线求交</h4>
+<ul>
+<li>光线和平面求交</li>
+<li>测试点是否在三角形内（已经做过）</li>
+</ul>
+<p><strong>平面定义</strong>：平面由一个法线（<span
+class="math inline">\(N\)</span>）和一个平面上的点（<span
+class="math inline">\(p\)</span>）所定义。</p>
+<p><strong>平面方程</strong>：<span
+class="math inline">\(p:(p-p&#39;)·N=0\)</span></p>
+<p><strong>光线代入求交</strong>：<span
+class="math inline">\((p-p&#39;)·N = (o+td-p&#39;)·N=0\)</span>，<span
+class="math inline">\(t=\dfrac{(p&#39;-o)·N}{d·N}\)</span>，<strong>Check</strong>：<span
+class="math inline">\(t\)</span> 是正实数</p>
+<h4 id="moller-trumbore-algorithm">4.3.2 Moller Trumbore Algorithm</h4>
+<p>优点：求出交点后可以直接判断是否在三角形内</p>
+<p><img src="\images\MollerTrumboreAlgorithm.png"/></p>
+<h4 id="加速光线-表面求交加速">4.3.3 加速光线-表面求交加速</h4>
+<p><strong>问题</strong>：朴素算法 = 像素数 × 三角形数 ×
+弹射数，非常慢！！！</p>
+<p><strong>包围盒（Bounding Volumes）</strong></p>
+<p>包围盒完全包含物体，如果连包围盒都没有碰到，就更不可能碰到物体。</p>
+<p>理解：长方体是<strong>三个不同的对面</strong>所形成的交集。（通常使用一个轴对齐包围盒AABB）</p>
+<p><strong>与包围盒求交</strong></p>
+<p><img src="\images\RayIntersectWithAABB.png"/></p>
+<p>两个 <span class="math inline">\(t_{min}\)</span> 取最大值，两个
+<span class="math inline">\(t_{max}\)</span>
+取最小值。相当于两个红色线段求交，因为盒子是两个对面的交集。</p>
+<p><strong>关键思想</strong>：</p>
+<ul>
+<li>光线进入盒子，当且仅当光线进入所有的对面；</li>
+<li>光线离开盒子 ，当且仅当光线离开任意一个对面。</li>
+</ul>
+<p>对于每一个对面，计算 <span class="math inline">\(t_{min}\)</span> 和
+<span class="math inline">\(t_{max}\)</span>，对于 3D 盒子，<span
+class="math inline">\(t_{enter}=max \{ t_{min} \}, t_{exit}=min \{
+t_{max} \}\)</span>，</p>
+<p>如果 <span class="math inline">\(t_{enter} &lt;
+t_{exit}\)</span>，光线在盒子待了一段时间，说明有交点。</p>
+<p><strong>对于 t &lt; 0 的情况</strong>：</p>
+<ol type="1">
+<li><span class="math inline">\(t_{exit} &lt; 0\)</span>
+？盒子在光线后面 — 没有交点！</li>
+<li><span class="math inline">\(t_{exit} &gt;= 0\)</span> and <span
+class="math inline">\(t_{enter} &lt; 0\)</span> ？光线起点在盒子里面！—
+有交点！</li>
+</ol>
+<p><strong>总结，光线与AABB有交点，当且仅当</strong>：<span
+class="math inline">\(t_{enter} &lt; t_{exit}\)</span> &amp;&amp; <span
+class="math inline">\(t_{exit} &gt;= 0\)</span></p>
+<h2 id="均匀空间划分grids">5. 均匀空间划分(Grids)</h2>
+<center class="half">
+<img src="\images\BuildAccelerationGrid.png" width=500/>
+<img src="\images\RaySceneIntersetion.png" width=500/>
+</center>
+<p>做法：先找到包围盒，然后创建网格，存储与格子相交的物体；按照光线传播方向遍历每个网格，</p>
+<p>求网格中存储的所有物体的交点。</p>
+<p><strong>格子应该多大？</strong></p>
+<p>太稀疏加速不了，太密集会耗时降低效率。一般来说，<span
+class="math inline">\(cells = C * objs,\quad C \approx 27\ in\
+3D\)</span> 。</p>
+<p>均匀网格（Uniform
+Grids）在很多物体大小和空间上均匀分布的场景上工作的很好，</p>
+<p>但是对于 “Teapot in a stadium” 问题，效率很低，并不适合。</p>
+<h2 id="空间划分spatial-partition">6. 空间划分(Spatial Partition)</h2>
+<p>空间划分例子：<strong>Oct-Tree</strong>（每次把空间划分成八份），<strong>KD-Tree</strong>（为了减少树的分支，每次把空间沿某个轴划分成两份），<strong>BSP-Tree</strong>（每次也把空间划分成两份，但是砍的方向不是横平竖直）。</p>
+<p><strong>KD树的数据结构</strong></p>
+<p>中间节点存储（没有物体存储在中间节点）：</p>
+<ul>
+<li>划分的轴：x，y，z轴；</li>
+<li>划分的位置：划分平面沿着轴的坐标</li>
+<li>指向子节点的指针</li>
+</ul>
+<p>叶子节点：物体列表</p>
+<p><img src="\images\KD-Tree.png" style="zoom:70%;" /></p>
+<p><strong>缺点</strong>：KD树的建立很难，需要考虑三角形和包围盒的交、一个物体可能会出现在多个叶子结点里。</p>
+<h2 id="物体划分-bvhobject-partition">7. 物体划分 &amp; BVH(Object
+Partition)</h2>
+<p><img src="\images\BVH.png" style="zoom:80%;" /></p>
+<p>避免了一个物体可能会出现在多个叶子结点里！怎么划分是一个很重要的问题。</p>
+<p><strong>建立BVH步骤：</strong></p>
+<ul>
+<li>找到一个包围盒；</li>
+<li>递归地通过把物体拆成两个部分来把包围盒拆成两个部分；</li>
+<li>两个部分重新计算包围盒；</li>
+<li>当节点包含少量物体时停止；</li>
+<li>把物体列表存储在叶子结点里面；</li>
+</ul>
+<p><strong>如何划分一个节点？</strong></p>
+<ul>
+<li>选择一个轴划分；</li>
+<li>总是选择最长的那个轴划分；</li>
+<li>取中间物体划分，使得左右两边的数量平衡；</li>
+</ul>
+<p><strong>BVH的数据结构：</strong></p>
+<ul>
+<li><p>中间节点：包围盒、子节点的指针；</p></li>
+<li><p>叶子节点：包围盒、物体列表；</p></li>
+</ul>
+<p><strong>BVH遍历伪代码：</strong></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Intersect</span>(Ray ray, BVH node) &#123;</span><br><span class="line">    <span class="keyword">if</span> (ray misses node.bbox) <span class="keyword">return</span>;</span><br><span class="line">    <span class="keyword">if</span> (node is a leaf node)</span><br><span class="line">        test intersection with all objs;</span><br><span class="line">    	<span class="keyword">return</span> closest intersection;</span><br><span class="line">    </span><br><span class="line">    hit1 = <span class="built_in">Intersect</span>(ray, node.child1);</span><br><span class="line">    hit2 = <span class="built_in">Intersect</span>(ray, node.child2);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> the closer of hit1, hit2;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="辐射度量学basic-radiometry">8. 辐射度量学(Basic radiometry)</h2>
+<p>定义光照的测量系统和单位，新的术语：Radiant
+flux，intensity，irradiance，radiance。</p>
+<h3 id="一些定义">一些定义</h3>
+<p><strong>Radiant Energy</strong></p>
+<blockquote>
+<p>Definition: Radiant energy is <strong>the energy of electromagnetic
+radiation</strong>. It is measured in units of joules, and denoted by
+the symbol: <span class="math display">\[
+Q \ [J=Joule]
+\]</span> <strong>Radiant Flux（Power）</strong></p>
+</blockquote>
+<blockquote>
+<p>Definition: Radiant Flux (power) is the <strong>energy</strong>
+emitted, reflected, transmitted or received, <strong>per unit
+time</strong>.</p>
+</blockquote>
+<p><span class="math display">\[
+\Phi \equiv \frac{dQ}{dt} \ [W = Watt] \ [lm = lumen]^*
+\]</span></p>
+<p><strong>Radiant Intensity</strong></p>
+<blockquote>
+<p>Definition: The radiant (luminous) intensity is the <strong>power per
+unit solid angle</strong> emitted by a point light source.</p>
+</blockquote>
+<p><span class="math display">\[
+I(\omega) \equiv \frac{d\Phi}{d\omega} \\
+\left[ \frac{W}{sr} \right] \ \left[ \frac{lm}{sr} = cd = candela\right]
+\]</span> <img src="\images\LightMeasurements.png"/></p>
+<p><strong>Solid Angle（角度和立体角）</strong></p>
+<p><img src="\images\SolidAngles.png" style="zoom:80%;" /></p>
+<p>微分立体角：<span class="math inline">\(d\omega = \dfrac{dA}{r^2} =
+\dfrac{(rd\theta)(rsin\theta d\phi)}{r^2} = sin\theta \, d\theta \,
+d\phi\)</span></p>
+<p>将会使用 <span class="math inline">\(\omega\)</span>
+表示一个方向向量（单位长度）</p>
+<p>点光源的强度：<span class="math inline">\(I =
+\dfrac{\phi}{4\pi}\)</span></p>
+<p><strong>Irradiance</strong></p>
+<blockquote>
+<p>Irradiance 是指每单位<strong>照射</strong>面积所接受到的power。</p>
+</blockquote>
+<p><span class="math display">\[
+E(x) \equiv \frac{d\Phi(x)}{dA} \\
+\left[ \frac{W}{m^2} \right] \ \left[ \frac{lm}{m^2} = lux\right]
+\]</span> <strong>Irradiance Falloff
+</strong>现象中，Intensity是没有变的，Irradiance在衰减。</p>
+<p><img src="\images\IrradianceFalloff.png" style="zoom:60%;" /></p>
+<p><strong>Radiance</strong></p>
+<blockquote>
+<p>Radiance 指每单位立体角，每单位投影面积的 power。</p>
+<p>Radiance is the fundamental field quantity that describes the
+distribution of light in an environment.</p>
+<ul>
+<li>Radiance is the quantity associated with a ray</li>
+<li>Rendering is all about computing radiance</li>
+</ul>
+</blockquote>
+<p><img src="\images\Radiance.png" style="zoom:80%;" /> <span
+class="math display">\[
+L(p,\omega) \equiv \dfrac{d^2\Phi(p,\omega)}{d\omega dAcos\theta} \\
+\left[ \frac{W}{sr \ m^2} \right] \ \left[ \frac{cd}{m^2} =
+\dfrac{lm}{sr \ m^2} = nit\right]
+\]</span> 回想：</p>
+<ul>
+<li>Irradiance: power per projected unit area</li>
+<li>Intensity: power per solid angle</li>
+</ul>
+<p>所以：</p>
+<ul>
+<li>Radiance: Irradiance per solid angle</li>
+<li>Radiance: Intensity per projected unit area</li>
+</ul>
+<p><strong>Incident（入射的）Radiance</strong></p>
+<blockquote>
+<p>Incident radiance is the irradiance per unit solid angle arriving at
+the surface.</p>
+</blockquote>
+<p><img src="\images\IncidentRadiance.png" style="zoom:80%;" /></p>
+<p><strong>Exiting（出射的）Radiance</strong></p>
+<blockquote>
+<p>Exiting surface radiance is the intensity per unit projected area
+leaving the surface.</p>
+</blockquote>
+<p><img src="\images\ExitingRadiance.png" style="zoom:80%;" /></p>
+<p><strong>Irradiance vs. Radiance</strong></p>
+<p><img src="\images\IrradianceVSRadiance.png" style="zoom:80%;" /></p>
+<p>总结一下：Radiance 与 Irradiance 相比具有方向性，Irradiance 是 dA
+面积接收的来自四面八方的能量，而 Radiance
+则是接收的某一方向立体角的能量。</p>
+<h2 id="brdf">9. BRDF</h2>
+<p>BRDF 即双向反射分布函数，Bidirectional Reflectance Distribution
+Function。</p>
+<p><strong>在一个点上的反射</strong></p>
+<p>从方向 <span class="math inline">\(\omega_{i}\)</span> 的 Radiance
+变成 dA 接收到的能量 E，然后能量 E 会变成任何其他向量 <span
+class="math inline">\(\omega_{0}\)</span>的 Radiance。</p>
+<p><img src="\images\ReflectAtPoint.png" style="zoom:80%;" /></p>
+<p>下图中的式子即为BRDF，它接收两个参数，入射光方向 <span
+class="math inline">\(\omega_i\)</span>， 反射光方向 <span
+class="math inline">\(\omega_r\)</span> ，函数值为反射光的 Radiance
+与入射光的 Irradiance
+的比值。BRDF函数表示了光从每一个入射的方向如何被反射到每一个出射的方向。比如理想光滑材质会把入射光线完全反射到镜面反射方向，而粗糙材质会把入射光均匀反射到所有方向。</p>
+<p><img src="\images\BRDF.png" style="zoom:80%;" /></p>
+<h3 id="反射方程">9.1 反射方程</h3>
+<p>借助 BRDF，可以定义反射方程。</p>
+<p>反射方程定义的是任何一个着色点，它在各种不同光照环境下，我们考虑它是任何一个输入的光照的进入方向，对出射方向的一个贡献，把所有入射方向的贡献全加起来，就可以得到着色点长什么样。</p>
+<p>即摄像机所接受到的 <span class="math inline">\(\omega_r\)</span>
+方向上的反射光，是由所有不同方向上入射光线的 Irradiance
+贡献得到的(即图中式子的 <span class="math inline">\(L_i(p,\omega_i)
+cos\theta_i d\omega_i\)</span>)，而不同方向入射光线的 Irradiance
+对反射方向 <span class="math inline">\(\omega_r\)</span>
+的贡献程度则由物体表面材质决定，所以乘上了一个BRDF函数。</p>
+<p><img src="\images\ReflectionEquation.png" style="zoom:80%;" /></p>
+<h3 id="递归方程的困难">9.2 递归方程的困难</h3>
+<p>正如下图所示，不难发现入射光线的 Radiance
+不仅仅是光源所引起的，还有可能是其他物体上着色点的反射光线的
+Radiance，恰好反射到当前的着色点
+p（即间接光照），同时其他物体上的反射光线的 Radiance
+依然也是由直接光照和间接光照构成，这与 whitted-style
+当中的光线追踪过程十分类似，也是一个递归的过程。所以说想要解这样一个方程还是比较难的。</p>
+<p><img src="\images\RecursiveEquation.png" style="zoom:80%;" /></p>
+<h3 id="渲染方程">9.3 渲染方程</h3>
+<p>渲染方程只是在反射方程的基础之上添加了一个自发光项（Emission
+term），从而使得反射方程更加通用。其中，<span
+class="math inline">\(L_e(p, \omega_o)\)</span> 为自发光项，反射方程中的
+<span class="math inline">\(cos\theta\)</span> 用 <span
+class="math inline">\(n·\omega_i\)</span>
+代替。（<strong>所有光线方向均指向外。</strong>）</p>
+<p><img src="\images\RenderingEquation.png" style="zoom:80%;" /></p>
+<h3 id="理解渲染方程">9.4 理解渲染方程</h3>
+<p>对于一个点光源，反射光就等于发光项 + 某个入射方向 <span
+class="math inline">\(\omega_i\)</span> 的光。</p>
+<p><img src="\images\UnderstandReflectAtPoint1.png"  width=700/></p>
+<p>对于多个点光源，把每一个点光源照亮这一个点然后反射到观测方向的能量加起来。</p>
+<p><img src="\images\UnderstandReflectAtPoint2.png"  width=700/></p>
+<p>对于面光源，其实面光源就相当于无穷多个点光源的集合，只需要对面光源所在的立体角范围进行积分，并且能够确定不同立体角方向的面光源的入射光
+Radiance 即可。</p>
+<p><img src="\images\UnderstandReflectAtPoint3.png"  width=700/></p>
+<p>对于间接光照，可以把反射的物体同样考虑成光源。只不过对其它物体的立体角积分不像是面光源所有入射方向都有
+Radiance，物体的立体角可能只有个别几个方向有入射的
+Radiance（即多次物体间光线反射之后恰好照射到着色点
+x），其它方向没有，但本质上都可以视作是面光源。</p>
+<p>因为这里的入射角度为了方便函数计算都是规定为从反射点朝外的，但是这里的入射角作为另一个点的出射角是从外射向当前点的，所以正好相反，这里加一个负号就可以直接递归了。</p>
+<p><img src="\images\UnderstandReflectAtPoint4.png" width=700/></p>
+<p>简化渲染方程：观察一下图中的渲染方程可以发现除了两个
+Radiance，其它所有项都是知道的，可以将上式进一步写成如下图下方所示的式子。</p>
+<p><img src="\images\UnderstandReflectAtPoint5.png" width=700/></p>
+<p>其中 <span class="math inline">\(L\)</span>
+其实就是想要求得的反射光，<span class="math inline">\(E\)</span>
+是自发光，其实就是光源的发光项，<span class="math inline">\(K\)</span>
+可以理解为对光线进行反射的一种算子操作(因为它由 BRDF
+化来的)。那么利用线性代数的知识很容易就可以推导出 <span
+class="math inline">\(L\)</span> 的结果如下：</p>
+<p><img src="\images\UnderstandReflectAtPoint6.png" width=700/></p>
+<p><img src="\images\UnderstandReflectAtPoint7.png" width=700/></p>
+<p><span class="math inline">\(E\)</span> 是从光源直接发出的光，<span
+class="math inline">\(KE\)</span> 是物体表面的直接光照，<span
+class="math inline">\(K^2E\)</span>
+是光线经过一次弹射之后的间接光照。</p>
+<p><strong>对于全局光照来说，考虑了直接光照、一次弹射的间接光照、二次弹射的间接光照等等......</strong></p>
+<p><strong>对于光栅化来说，做的只是直接光照 <span
+class="math inline">\(E + KE\)</span></strong> ！</p>
+<h2 id="蒙特卡洛路径追踪">10. 蒙特卡洛路径追踪</h2>
+<h3 id="蒙特卡洛积分">10.1 蒙特卡洛积分</h3>
+<p><strong>蒙特卡洛积分的目的</strong>：当一个积分很难通过解析的方式得到答案的时候可以通过蒙特卡洛的方式近似得到积分结果。</p>
+<p><strong>蒙特卡洛积分的原理及做法：</strong>
+对函数值进行多次采样求均值作为积分值的近似。</p>
+<p>如图所示，我们希望求出一个函数 <span
+class="math inline">\(f(x)\)</span> 在积分域 <span
+class="math inline">\([a,b]\)</span> 上的积分值，选定一个采样的分布
+<span
+class="math inline">\(p(x)\)</span>，通过对该分布来进行多次的函数值采样，最后估计的值如图中最下方式子所示。这里的积分域在
+pdf 里面体现出来了。 <span class="math display">\[
+\int f(x)dx = \frac{1}{N} \sum_{i=1}^{N}\dfrac{f(X_i)}{p(X_i)} \quad X_i
+\sim p(x)
+\]</span>
+这里对该式子进行一个简单的推导。相信大家都知道，求均值的做法其实也是对期望的逼近，因此：
+<span class="math display">\[
+\frac{1}{N} \sum_{i=1}^{N}\dfrac{f(X_i)}{p(X_i)} \approx \mathbb{E}_{x
+\sim p(x)}(\dfrac{f(x)}{p(x)})
+\]</span> 那么对于这样一个服从某一分布的期望的计算套公式直接计算得：
+<span class="math display">\[
+\begin{align}
+\mathbb{E}_{x \sim p(x)}(\dfrac{f(x)}{p(x)}) &amp;= \int_a^b
+\dfrac{f(x)}{p(x)}p(x)dx \\
+&amp;= \int_a^bf(x)dx
+\end{align}
+\]</span>
+通过以上推导即可明白蒙特卡洛的近似正是对积分值的一个无偏估计。</p>
+<p>但在本文中为了方便，所有的采样都使用均匀采样，因此很容易推出： <span
+class="math display">\[
+F_N = \dfrac{b-a}{N} \sum_{i=1}^{N}f(X_i) \quad X_i \sim p(x) =
+\dfrac{1}{b-a}
+\]</span> <strong>一些重点：</strong></p>
+<ul>
+<li><p>采样越多，得到的结果越准；</p></li>
+<li><p>在 <span class="math inline">\(x\)</span> 上采样，在 <span
+class="math inline">\(x\)</span> 上积分；</p></li>
+</ul>
+<h3 id="路径追踪">10.2 路径追踪</h3>
+<p>先研究下 Whitted-Style 光线追踪的实现：</p>
+<ul>
+<li><p>总是执行specular reflections / refractions</p></li>
+<li><p>在 diffuse 表面停止弹射</p></li>
+</ul>
+<p>但是这些简化是合理的吗？至少存在两个问题！</p>
+<p><strong>问题1： 对于 Glossy
+材质的物体，既存在粗糙也存在镜面反射，只是按 specular
+来是不对的；</strong></p>
+<p><strong>问题2：光线在漫反射 diffuse 材质之间也存在弹射；<em>(color
+bleeding)</em></strong></p>
+<center class="half">
+<img src="\images\RayTracingProblem1.png" width=500/>
+<img src="\images\RayTracingProblem2.png" width=500/>
+</center>
+<p><strong>虽然Whitted-Style 光线追踪不对，但渲染方程是对的！</strong>
+<span class="math display">\[
+L_o(p,\omega_o)=L_e(p,\omega_o)+\int_{\Omega+}L_i(p,\omega_i)f_r(p,\omega_i,\omega_o)(n·\omega_i)d\omega_i
+\]</span> 要想解出以上方程主要有两个难点：1. 求解一个半球上的定积分；2.
+递归形式；</p>
+<p>而解决这些难点自然就要利用上节中所提到的蒙特卡洛积分方法了。</p>
+<h4 id="简单的蒙特卡罗解法">10.2.1 简单的蒙特卡罗解法</h4>
+<p>假设我们想要去渲染仅直接光照的下面场景中的一个像素 ：</p>
+<p><img src="\images\SimpleMonteCarloSolution1.png" /></p>
+<p>在进入具体计算之前，对渲染方程做出一点小修改，只考虑直接光照，即舍弃一下自发光项（因为除了光源其他物体不会发光），以方便进行计算推导，现在计算
+p 点的 Radiance：</p>
+<p><img src="\images\SimpleMonteCarloSolution2.png" width=700/></p>
+<p>再次观察该修改过之后的方程其实就只是一个单纯的积分计算了，其物理含义为着色点
+p 到摄像机或人眼的 Radiance 值。</p>
+<p>回想前面所提的，对于一个困难积分只要选定一个被积分变量的采样分布即可通过蒙特卡洛的方法得到积分结果的近似值，而此时的被积分值为
+<span class="math inline">\(\omega_i\)</span>，选定 <span
+class="math inline">\(\omega_i \sim
+p(\omega_i)\)</span>，不难得出积分近似结果如下：</p>
+<p><img src="\images\SimpleMonteCarloSolution3.png" width=700/></p>
+<p>对于每一个 <span class="math inline">\(\omega_i\)</span>
+方向，向光源发出一条光线 <span class="math inline">\(r\)</span>，判断
+<span class="math inline">\(r\)</span>
+是否打到光源。由于这里只考虑直接光照，所以不考虑 <span
+class="math inline">\(r\)</span> 不到达光源的情况。</p>
+<p>单独仅仅考虑直接光照自然是不够的，现在考虑全局光照。如果光线 <span
+class="math inline">\(r\)</span>
+打到一个物体，我们把物体也看成是光源，其向当前着色点发出来的光就是 <span
+class="math inline">\(shade(p, -\omega_i)\)</span> 的结果。</p>
+<p><img src="\images\GlobalIllumination.png" width=700 /></p>
+<h4 id="路径追踪-1">10.2.2 路径追踪</h4>
+<p>至此，我们成功通过蒙特卡洛的方式解出了渲染方程的积分值，也通过考虑直接光照与间接光照解决了递归的问题。但该方法至此有一个非常致命的缺陷：</p>
+<p><strong>问题1：光线会以指数级爆炸增长，<span
+class="math inline">\(ray = N^{bounces}\)</span>！</strong></p>
+<p><img src="\images\LightExplosion.png" width=700 /></p>
+<p>我们通过每次对光线方向的采样从而解出方程，假设每次采样100条，那么从人眼出发的第一次采样就是100条，在进行第二次反射之后就是10000条，依次类推，反射越多次光线数量便会爆炸增长，计算量会无法负担，那么如何才能使得光线数量不爆炸增长呢？<strong>唯有每次只采样一个方向！N=1</strong></p>
+<p><img src="\images\PathTracing.png" width=700 /></p>
+<p>每次如果只采样一个方向那么所带来的问题也是显而易见的，积分计算的结果会非常的noisy，虽然蒙特卡洛积分是无偏估计，但样本越少显然偏差越大。但该问题很好解决，如果每次只去寻找一条路径结果不好，那么重复多次寻找到多条路径，将多条路径的结果求得平均即可！</p>
+<p><img src="\images\multipleSampling.png" width=700 /></p>
+<p>改良之后的Path Tracing伪代码如下：</p>
+<p><img src="\images\RayGeneration.png" width=700 /></p>
+<h4 id="俄罗斯轮盘赌russian-roulette">10.2.3 俄罗斯轮盘赌(Russian
+Roulette)</h4>
+<p><strong>问题2：递归不会终止！</strong></p>
+<p>那么现在所有的问题都解决了吗？还没有！因为 <span
+class="math inline">\(shade\)</span> 函数的递归没有出口，永远不会停下。
+但这里并不没有采用类似光线追踪当中设定反射深度显式地给出递归出口的方法，而是非常精妙的采用了<strong>俄罗斯轮盘赌(Russian
+Roulette)</strong>。</p>
+<p>俄罗斯轮盘赌来决定以一定的概率停止往下去追踪！</p>
+<p>假设现在我们设定一个概率 <span class="math inline">\(P(0 \lt P \lt
+1)\)</span>，有 <span class="math inline">\(P\)</span>
+的概率光线会继续递归并返回值为 <span
+class="math inline">\(L_o/P\)</span>，有 <span
+class="math inline">\(1-P\)</span>
+的概率停止递归，并返回0。通过这种方式，计算的结果仍然是无偏的，因为
+Radiance 的期望不变，如下图：</p>
+<p><img src="\images\RussianRoulette1.png" width=700 /></p>
+<p><img src="\images\RussianRoulette2.png" width=700/></p>
+<h4 id="对光源采样">10.2.4 对光源采样</h4>
+<p>虽然上面有了一个正确版本的路径追踪，但不是很有效。当 SPP （samples
+per
+pixel）很小时，结果会有噪声。这是由于并不是所有的光线都能打到光源，有很多光线都浪费掉了，如图：</p>
+<p><img src="\images\SampleLight1.png"/></p>
+<p><strong>所以我们的想法是对光源进行采样！</strong>在光源上采样就得在光源上积分。但是渲染方程是在立体角
+<span class="math inline">\(d\omega\)</span> 上积分的，所以现在要换元在
+<span class="math inline">\(dA\)</span> 上积分。</p>
+<p><img src="\images\SampleLight2.png" width=700/></p>
+<p>我们根据立体角定义，可以找到 <span
+class="math inline">\(d\omega\)</span> 和 <span
+class="math inline">\(dA\)</span> 之间的关系！</p>
+<p><img src="\images\SampleLight3.png" width=700/></p>
+<p>关系式中的 <span class="math inline">\(cost \theta&#39;\)</span>
+是为了计算出光源上微分面积元正对半球的面积，之后再按照立体角的定义 <span
+class="math inline">\(d\omega = \dfrac{dA}{r^2}\)</span>，除以着色点
+<span class="math inline">\(x\)</span> 与光源采样点 <span
+class="math inline">\(x&#39;\)</span>
+距离的平方即可。于是根据图中二者的关系可将渲染方程改写如下：</p>
+<p><img src="\images\SampleLight4.png" width=700/></p>
+<p>对于光源的贡献，直接通过采样光源的方法来算，不需要用俄罗斯轮盘赌，因为这就是直接光照，就是光源对这个点的贡献。对于间接光照，依然采用先前的方法进行光线方向的均匀采样，只有涉及到更多次弹射才需要俄罗斯轮盘赌。</p>
+<p><img src="\images\SampleLight5.png" width=700/></p>
+<p><img src="\images\SampleLight6.png" width=700/></p>
+<p>最后一件事情：我们怎么知道采样光源是否会被阻挡？该做法也很简单，只需从着色点
+<span class="math inline">\(x\)</span> 向光源采样点 <span
+class="math inline">\(x’\)</span>
+发出一条检测光线判断是否与光源之外的物体相交即可，如图所示:</p>
+<p><img src="\images\SampleLight7.png" width=700/></p>
+<h4 id="更高级知识">10.2.5 更高级知识</h4>
+<ul>
+<li>怎么样对一个函数进行采样？</li>
+<li>选择什么样的pdf是最好的？ —— 重要性采样理论</li>
+<li>随机数的好坏？ —— 低差异序列</li>
+<li>能不能结合光源采样和半球采样？ —— 多重重要性采样</li>
+<li>为什么像素的Radiance是穿过像素所有Radiance的平均？ —— pixel
+reconstruction filter</li>
+<li>Radiance怎么转换成颜色？ —— 伽马校正</li>
+</ul>
+<p><img src="\images\ThingsUnConvered.png" width=700/></p>
+<p><img src="\images\ThingsUnConvered2.png" width=700/></p>
+<p><strong>Reference</strong></p>
+<p>[1] <a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/145410416">孙小磊,
+计算机图形学十四：基于物理渲染的基础知识(辐射度量学，BRDF和渲染方程)</a></p>
+
+    </article>
+    <!-- license -->
+    
+        <div class="license-wrapper">
+            <p>Author：<a href="https://nathanielfeng.github.io">Jannish</a>
+            <p>Link：<a href="https://nathanielfeng.github.io/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">https://nathanielfeng.github.io/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/</a>
+            <p>Publish date：<a href="https://nathanielfeng.github.io/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">November 5th 2022, 12:00:00 am</a>
+            <p>Update date：<a href="https://nathanielfeng.github.io/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">September 5th 2023, 9:21:40 am</a>
+            <p>License：本文采用<a rel="license noopener" target="_blank" href="http://creativecommons.org/licenses/by-nc/4.0/">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
+        </div>
+    
+    <!-- paginator -->
+    <ul class="post-paginator">
+        <li class="next">
+            
+                <div class="nextSlogan">Next Post</div>
+                <a href="/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/" title="「现代计算机图形学入门」Whitted-Styles光线追踪">
+                    <div class="nextTitle">「现代计算机图形学入门」Whitted-Styles光线追踪</div>
+                </a>
+            
+        </li>
+        <li class="previous">
+            
+                <div class="prevSlogan">Previous Post</div>
+                <a href="/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A1-3%EF%BC%9A%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8%E4%B8%8E%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="「现代计算机图形学入门」光栅化渲染器与渲染管线">
+                    <div class="prevTitle">「现代计算机图形学入门」光栅化渲染器与渲染管线</div>
+                </a>
+            
+        </li>
+    </ul>
+    <!-- comment -->
+    
+        <div class="post-comment">
+            <!-- 来必力 City 版安装代码 -->
+
+
+            
+
+            
+
+            
+
+            <!-- utteranc评论 -->
+
+
+            <!-- partial('_partial/comment/changyan') -->
+            <!--PC版-->
+
+
+            
+            
+
+            
+
+        </div>
+    
+    <!-- timeliness note -->
+    <!-- idea from: https://hexo.fluid-dev.com/posts/hexo-injector/#%E6%96%87%E7%AB%A0%E6%97%B6%E6%95%88%E6%80%A7%E6%8F%90%E7%A4%BA -->
+    
+    <!-- Mathjax -->
+    
+        
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.0/es5/tex-mml-chtml.js"></script>
+
+
+    
+</main>
+
+                <!-- profile -->
+                
+            </div>
+            <footer class="footer footer-unloaded">
+    <!-- social  -->
+    
+        <div class="social">
+            
+    
+        
+            
+                <a href="mailto:645931808@qq.com" class="iconfont-archer email" title=email ></a>
+            
+        
+    
+        
+            
+                <a href="//github.com/nathanielfeng" class="iconfont-archer github" target="_blank" title=github></a>
+            
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+
+        </div>
+    
+    <!-- powered by Hexo  -->
+    <div class="copyright">
+        <span id="hexo-power">Powered by <a href="https://hexo.io/" target="_blank">Hexo</a></span><span class="iconfont-archer power">&#xe635;</span><span id="theme-info">theme <a href="https://github.com/fi3ework/hexo-theme-archer" target="_blank">Archer</a></span>
+    </div>
+    <!-- website approve for Chinese user -->
+    
+    <!-- 不蒜子  -->
+    
+        <div class="busuanzi-container">
+            
+             
+                <span id="busuanzi_container_site_pv">PV: <span id="busuanzi_value_site_pv"></span> :)</span>
+            
+        </div>
+    	
+</footer>
+
+        </div>
+        <!-- toc -->
+        
+            <div class="toc-wrapper toc-wrapper-loding" style=
+
+
+
+
+
+
+
+    top:50vh;
+
+>
+                <div class="toc-catalog">
+                    <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
+                </div>
+                <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA"><span class="toc-text">「现代计算机图形学入门」光线追踪</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%98%B4%E5%BD%B1%E6%98%A0%E5%B0%84shadow-mapping"><span class="toc-text">1. 阴影映射(Shadow Mapping)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA%E7%AE%97%E6%B3%95"><span class="toc-text">2. 基础光线追踪算法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%92%E5%BD%92%E7%9A%84whitted-style%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA"><span class="toc-text">3.
+递归的(Whitted-Style)光线追踪</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%89%E7%BA%BF-%E8%A1%A8%E9%9D%A2%E7%9B%B8%E4%BA%A4"><span class="toc-text">4. 光线-表面相交</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%89%E7%BA%BF%E5%92%8C%E7%90%83%E6%B1%82%E4%BA%A4"><span class="toc-text">4.1 光线和球求交</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A8%E5%B9%BF%E5%88%B0%E4%B8%80%E8%88%AC%E7%9A%84%E9%9A%90%E5%BC%8F%E8%A1%A8%E9%9D%A2%E5%87%BD%E6%95%B0"><span class="toc-text">4.2 推广到一般的隐式表面函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%89%E7%BA%BF%E5%92%8C%E4%B8%89%E8%A7%92%E5%BD%A2%E7%BD%91%E6%A0%BC%E6%B1%82%E4%BA%A4"><span class="toc-text">4.3 光线和三角形网格求交</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%89%E8%A7%92%E5%BD%A2%E5%92%8C%E5%85%89%E7%BA%BF%E6%B1%82%E4%BA%A4"><span class="toc-text">4.3.1 三角形和光线求交</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#moller-trumbore-algorithm"><span class="toc-text">4.3.2 Moller Trumbore Algorithm</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8A%A0%E9%80%9F%E5%85%89%E7%BA%BF-%E8%A1%A8%E9%9D%A2%E6%B1%82%E4%BA%A4%E5%8A%A0%E9%80%9F"><span class="toc-text">4.3.3 加速光线-表面求交加速</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9D%87%E5%8C%80%E7%A9%BA%E9%97%B4%E5%88%92%E5%88%86grids"><span class="toc-text">5. 均匀空间划分(Grids)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%A9%BA%E9%97%B4%E5%88%92%E5%88%86spatial-partition"><span class="toc-text">6. 空间划分(Spatial Partition)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%89%A9%E4%BD%93%E5%88%92%E5%88%86-bvhobject-partition"><span class="toc-text">7. 物体划分 &amp; BVH(Object
+Partition)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BE%90%E5%B0%84%E5%BA%A6%E9%87%8F%E5%AD%A6basic-radiometry"><span class="toc-text">8. 辐射度量学(Basic radiometry)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E4%BA%9B%E5%AE%9A%E4%B9%89"><span class="toc-text">一些定义</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#brdf"><span class="toc-text">9. BRDF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%8D%E5%B0%84%E6%96%B9%E7%A8%8B"><span class="toc-text">9.1 反射方程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%92%E5%BD%92%E6%96%B9%E7%A8%8B%E7%9A%84%E5%9B%B0%E9%9A%BE"><span class="toc-text">9.2 递归方程的困难</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B8%B2%E6%9F%93%E6%96%B9%E7%A8%8B"><span class="toc-text">9.3 渲染方程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%90%86%E8%A7%A3%E6%B8%B2%E6%9F%93%E6%96%B9%E7%A8%8B"><span class="toc-text">9.4 理解渲染方程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%92%99%E7%89%B9%E5%8D%A1%E6%B4%9B%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA"><span class="toc-text">10. 蒙特卡洛路径追踪</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%92%99%E7%89%B9%E5%8D%A1%E6%B4%9B%E7%A7%AF%E5%88%86"><span class="toc-text">10.1 蒙特卡洛积分</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA"><span class="toc-text">10.2 路径追踪</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%AE%80%E5%8D%95%E7%9A%84%E8%92%99%E7%89%B9%E5%8D%A1%E7%BD%97%E8%A7%A3%E6%B3%95"><span class="toc-text">10.2.1 简单的蒙特卡罗解法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA-1"><span class="toc-text">10.2.2 路径追踪</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%84%E7%BD%97%E6%96%AF%E8%BD%AE%E7%9B%98%E8%B5%8Crussian-roulette"><span class="toc-text">10.2.3 俄罗斯轮盘赌(Russian
+Roulette)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AF%B9%E5%85%89%E6%BA%90%E9%87%87%E6%A0%B7"><span class="toc-text">10.2.4 对光源采样</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9B%B4%E9%AB%98%E7%BA%A7%E7%9F%A5%E8%AF%86"><span class="toc-text">10.2.5 更高级知识</span></a></li></ol></li></ol></li></ol></li></ol>
+            </div>
+        
+        <!-- sidebar -->
+        <div class="sidebar sidebar-hide">
+    <ul class="sidebar-tabs sidebar-tabs-active-0">
+        <li class="sidebar-tab-archives"><span class="iconfont-archer">&#xe67d;</span><span class="tab-name">Archive</span></li>
+        <li class="sidebar-tab-tags"><span class="iconfont-archer">&#xe61b;</span><span class="tab-name">Tag</span></li>
+        <li class="sidebar-tab-categories"><span class="iconfont-archer">&#xe666;</span><span class="tab-name">Cate</span></li>
+    </ul>
+    <div class="sidebar-content sidebar-content-show-archive">
+        <div class="sidebar-panel-archives">
+    <!-- 在 ejs 中将 archive 按照时间排序 -->
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    
+    
+    
+    
+    <div class="total-and-search">
+        <div class="total-archive">
+        Total : 25
+        </div>
+        <!-- search  -->
+        
+    </div>
+    
+    <div class="post-archive">
+    
+        
+            
+            
+            <div class="archive-year"> 2023 </div>
+            <ul class="year-list">
+            
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/28</span>
+            <a class="archive-post-title" href="/2023/05/28/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D4.%20%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/">「高质量实时渲染」实时环境光照</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/15</span>
+            <a class="archive-post-title" href="/2023/05/15/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D3.%20%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/">「高质量实时渲染」实时阴影</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/05</span>
+            <a class="archive-post-title" href="/2023/05/05/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D2.%20%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%9F%BA%E7%A1%80%E6%A6%82%E8%BF%B0/">「高质量实时渲染」图形学基础概述</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/29</span>
+            <a class="archive-post-title" href="/2023/04/29/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D1.%20%E5%BC%95%E8%A8%80%E4%B8%8E%E6%A6%82%E8%BF%B0/">「高质量实时渲染」引言与概述</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/15</span>
+            <a class="archive-post-title" href="/2023/04/15/%E3%80%8CNORI%E3%80%8D%E7%8E%AF%E5%A2%83%E6%98%A0%E5%B0%84%E4%B8%8E%E5%85%89%E6%BA%90%E9%87%87%E6%A0%B7/">「NORI」环境映射与光源采样</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/01</span>
+            <a class="archive-post-title" href="/2023/04/01/%E3%80%8CNORI%E3%80%8D%E8%92%99%E7%89%B9%E5%8D%A1%E6%B4%9B%E9%87%87%E6%A0%B7%E4%B8%8E%E7%8E%AF%E5%A2%83%E5%85%89%E9%81%AE%E8%94%BD/">「NORI」蒙特卡洛采样与环境光遮蔽</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/20</span>
+            <a class="archive-post-title" href="/2023/03/20/%E3%80%8CNORI%E3%80%8D%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E7%9A%84%E6%A1%86%E6%9E%B6%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/">「NORI」从零开始的框架源码解读</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/24</span>
+            <a class="archive-post-title" href="/2023/02/24/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A7%EF%BC%9ABRDF%E4%B8%8E%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/">「现代计算机图形学入门」路径追踪与 BRDF</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/12</span>
+            <a class="archive-post-title" href="/2023/02/12/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D11.%20%E5%8A%A8%E7%94%BB/">「现代计算机图形学入门」动画</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/09</span>
+            <a class="archive-post-title" href="/2023/02/09/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D10.%20%E9%A2%9C%E8%89%B2%E4%B8%8E%E6%84%9F%E7%9F%A5/">「现代计算机图形学入门」颜色与感知</a>
+        </li>
+    
+        
+            
+            
+                
+                </ul>
+            
+            <div class="archive-year"> 2022 </div>
+            <ul class="year-list">
+            
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">12/14</span>
+            <a class="archive-post-title" href="/2022/12/14/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D9.%20%E7%9B%B8%E6%9C%BA,%20%E9%80%8F%E9%95%9C%E4%B8%8E%E5%85%89%E5%9C%BA/">「现代计算机图形学入门」相机, 透镜与光场</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">12/11</span>
+            <a class="archive-post-title" href="/2022/12/11/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D8.%20%E6%B8%B2%E6%9F%93%E9%AB%98%E7%BA%A7%E8%AF%9D%E9%A2%98/">「现代计算机图形学入门」渲染高级主题</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">12/03</span>
+            <a class="archive-post-title" href="/2022/12/03/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D7.%20%E6%9D%90%E8%B4%A8%E4%B8%8E%E5%A4%96%E8%A7%82/">「现代计算机图形学入门」材质和外观</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">11/17</span>
+            <a class="archive-post-title" href="/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">「现代计算机图形学入门」Whitted-Styles光线追踪</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">11/05</span>
+            <a class="archive-post-title" href="/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">「现代计算机图形学入门」光线追踪</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">11/05</span>
+            <a class="archive-post-title" href="/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A1-3%EF%BC%9A%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8%E4%B8%8E%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/">「现代计算机图形学入门」光栅化渲染器与渲染管线</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">10/30</span>
+            <a class="archive-post-title" href="/2022/10/30/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D5.%20%E5%87%A0%E4%BD%95/">「现代计算机图形学入门」几何</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">10/03</span>
+            <a class="archive-post-title" href="/2022/10/03/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D4.%20%E7%9D%80%E8%89%B2/">「现代计算机图形学入门」着色</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">09/15</span>
+            <a class="archive-post-title" href="/2022/09/15/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D3.%20%E5%85%89%E6%A0%85%E5%8C%96/">「现代计算机图形学入门」光栅化</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/13</span>
+            <a class="archive-post-title" href="/2022/03/13/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D2.%20%E7%9F%A9%E9%98%B5%E5%8F%98%E6%8D%A2/">「现代计算机图形学入门」矩阵变换</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/10</span>
+            <a class="archive-post-title" href="/2022/03/10/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D1.%20%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">「现代计算机图形学入门」线性代数</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8CC++%E3%80%8DC++%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/">「C++」C++知识点总结（待完善）</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8C%E6%9D%82%E8%B0%88%E3%80%8D%E5%85%B3%E4%BA%8E%E5%85%B3%E4%BA%8E%E5%8F%B3%E6%89%8B%E5%9D%90%E6%A0%87%E7%B3%BB%E4%B8%8B%E7%BB%95y%E8%BD%B4%E6%97%8B%E8%BD%AC%E7%9A%84%E7%9F%A9%E9%98%B5Ry%E2%80%9C%E4%B8%8D%E5%A4%AA%E4%B8%80%E6%A0%B7%E2%80%9D%E7%9A%84%E6%80%9D%E8%80%83/">「图形学」关于右手坐标系下绕y轴旋转的矩阵Ry“不太一样”的思考</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8C%E6%9D%82%E8%B0%88%E3%80%8DHexo%20Next%E4%B8%BB%E9%A2%98%E9%85%8D%E7%BD%AEMathjax%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9Apandoc%20exited%20with%20code%20null/">「博客搭建」Hexo Next主题配置Mathjax遇到的问题：pandoc exited with code null</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8C%E7%AE%97%E6%B3%95%E7%AC%94%E8%AE%B0%E6%9C%AC%E3%80%8D%E5%BF%AB%E6%85%A2%E6%8C%87%E9%92%88/">「算法笔记本」快慢指针</a>
+        </li>
+    
+    </div>
+</div>
+
+        <div class="sidebar-panel-tags">
+    <div class="sidebar-tags-name">
+        
+            <span class="sidebar-tag-name" data-tags="NORI">
+                <span class="iconfont-archer">&#xe606;</span>
+                NORI
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="C++">
+                <span class="iconfont-archer">&#xe606;</span>
+                C++
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="图形学">
+                <span class="iconfont-archer">&#xe606;</span>
+                图形学
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="博客搭建">
+                <span class="iconfont-archer">&#xe606;</span>
+                博客搭建
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="现代计算机图形学入门">
+                <span class="iconfont-archer">&#xe606;</span>
+                现代计算机图形学入门
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="算法笔记本">
+                <span class="iconfont-archer">&#xe606;</span>
+                算法笔记本
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="高质量实时渲染">
+                <span class="iconfont-archer">&#xe606;</span>
+                高质量实时渲染
+            </span>
+        
+    </div>
+    <div class="iconfont-archer sidebar-tags-empty">&#xe678;</div>
+    <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
+        缺失模块，请参考主题文档进行安装配置：https://github.com/fi3ework/hexo-theme-archer#%E5%AE%89%E8%A3%85%E4%B8%BB%E9%A2%98
+    </div> 
+    <div class="sidebar-tags-list"></div>
+</div>
+
+        <div class="sidebar-panel-categories">
+    <div class="sidebar-categories-name">
+    
+    </div>
+    <div class="iconfont-archer sidebar-categories-empty">&#xe678;</div>
+    <div class="sidebar-categories-list"></div>
+</div>
+
+    </div>
+</div>
+
+        <!-- site-meta -->
+        <script>
+    var siteMetaRoot = "/"
+    if (siteMetaRoot === "undefined") {
+        siteMetaRoot = '/'
+    }
+    var siteMeta = {
+        url: "https://nathanielfeng.github.io",
+        root: siteMetaRoot,
+        author: "Jannish"
+    }
+</script>
+
+        <!-- import experimental options here -->
+        <!-- Custom Font -->
+
+
+        <!-- main func -->
+        <script src="/scripts/main.js?v=20211217"></script>
+        <!-- dark mode -->
+        <script src="/scripts/dark.js?v=20211217"></script>
+        <!-- fancybox -->
+        <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" defer></script>
+        <!-- algolia -->
+        
+        <!-- busuanzi -->
+        
+            <script src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+        
+        <!-- CNZZ -->
+        
+        <!-- async load share.js -->
+        
+            <script src="/scripts/share.js?v=20211217" async></script>
+        
+        <!-- mermaid -->
+        
+    </body>
+</html>

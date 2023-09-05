@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!-- title -->
+
+
+    
+
+<!-- keywords -->
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="author" content="Jannish">
+    <meta name="renderer" content="webkit">
+    <meta name="copyright" content="Jannish">
+    
+        <meta name="keywords" content="hexo,hexo-theme,hexo-blog">
+    
+    <meta name="description" content="">
+    <meta name="description" content="「现代计算机图形学入门」Whitted-Styles光线追踪 1. 代码框架 整个代码框架可以分为 6 大类：  工具类：global.hpp、vector.hpp 光源类：Light.hpp 物体类：Object.hpp、Sphere.hpp、Triangle.hpp 场景类：Scene.hpp（Scene.cpp 基本没啥代码不考虑） 主函数：main.cpp 渲染类：Ren">
+<meta property="og:type" content="article">
+<meta property="og:title" content="「现代计算机图形学入门」Whitted-Styles光线追踪">
+<meta property="og:url" content="https://nathanielfeng.github.io/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/index.html">
+<meta property="og:site_name" content="Jannish Blog">
+<meta property="og:description" content="「现代计算机图形学入门」Whitted-Styles光线追踪 1. 代码框架 整个代码框架可以分为 6 大类：  工具类：global.hpp、vector.hpp 光源类：Light.hpp 物体类：Object.hpp、Sphere.hpp、Triangle.hpp 场景类：Scene.hpp（Scene.cpp 基本没啥代码不考虑） 主函数：main.cpp 渲染类：Ren">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/RayIntersectWithSphere.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/ReflectVec.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/SnellLaw.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/fresnelTerm.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/20200420204127966.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/20200420205835449.png">
+<meta property="og:image" content="https://nathanielfeng.github.io/images/20200420210042119.png">
+<meta property="article:published_time" content="2022-11-16T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-09-05T01:22:01.863Z">
+<meta property="article:author" content="Jannish">
+<meta property="article:tag" content="现代计算机图形学入门">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://nathanielfeng.github.io/images/RayIntersectWithSphere.png">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="icon" href="/assets/favicon.ico">
+    
+    <title>「现代计算机图形学入门」Whitted-Styles光线追踪 · Jannish Blog</title>
+    <!-- /*! loadCSS. [c]2017 Filament Group, Inc. MIT License */
+/* This file is meant as a standalone workflow for
+- testing support for link[rel=preload]
+- enabling async CSS loading in browsers that do not support rel=preload
+- applying rel preload css once loaded, whether supported or not.
+*/ -->
+<script>
+    (function (w) {
+        'use strict'
+        // rel=preload support test
+        if (!w.loadCSS) {
+            w.loadCSS = function () {}
+        }
+        // define on the loadCSS obj
+        var rp = (loadCSS.relpreload = {})
+        // rel=preload feature support test
+        // runs once and returns a function for compat purposes
+        rp.support = (function () {
+            var ret
+            try {
+                ret = w.document.createElement('link').relList.supports('preload')
+            } catch (e) {
+                ret = false
+            }
+            return function () {
+                return ret
+            }
+        })()
+
+        // if preload isn't supported, get an asynchronous load by using a non-matching media attribute
+        // then change that media back to its intended value on load
+        rp.bindMediaToggle = function (link) {
+            // remember existing media attr for ultimate state, or default to 'all'
+            var finalMedia = link.media || 'all'
+
+            function enableStylesheet() {
+                link.media = finalMedia
+            }
+
+            // bind load handlers to enable media
+            if (link.addEventListener) {
+                link.addEventListener('load', enableStylesheet)
+            } else if (link.attachEvent) {
+                link.attachEvent('onload', enableStylesheet)
+            }
+
+            // Set rel and non-applicable media type to start an async request
+            // note: timeout allows this to happen async to let rendering continue in IE
+            setTimeout(function () {
+                link.rel = 'stylesheet'
+                link.media = 'only x'
+            })
+            // also enable media after 3 seconds,
+            // which will catch very old browsers (android 2.x, old firefox) that don't support onload on link
+            setTimeout(enableStylesheet, 3000)
+        }
+
+        // loop through link elements in DOM
+        rp.poly = function () {
+            // double check this to prevent external calls from running
+            if (rp.support()) {
+                return
+            }
+            var links = w.document.getElementsByTagName('link')
+            for (var i = 0; i < links.length; i++) {
+                var link = links[i]
+                // qualify links to those with rel=preload and as=style attrs
+                if (
+                    link.rel === 'preload' &&
+                    link.getAttribute('as') === 'style' &&
+                    !link.getAttribute('data-loadcss')
+                ) {
+                    // prevent rerunning on link
+                    link.setAttribute('data-loadcss', true)
+                    // bind listeners to toggle media back
+                    rp.bindMediaToggle(link)
+                }
+            }
+        }
+
+        // if unsupported, run the polyfill
+        if (!rp.support()) {
+            // run once at least
+            rp.poly()
+
+            // rerun poly on an interval until onload
+            var run = w.setInterval(rp.poly, 500)
+            if (w.addEventListener) {
+                w.addEventListener('load', function () {
+                    rp.poly()
+                    w.clearInterval(run)
+                })
+            } else if (w.attachEvent) {
+                w.attachEvent('onload', function () {
+                    rp.poly()
+                    w.clearInterval(run)
+                })
+            }
+        }
+
+        // commonjs
+        if (typeof exports !== 'undefined') {
+            exports.loadCSS = loadCSS
+        } else {
+            w.loadCSS = loadCSS
+        }
+    })(typeof global !== 'undefined' ? global : this)
+</script>
+
+    <style type="text/css">
+    @font-face {
+        font-family: 'Oswald-Regular';
+        src: url("/font/Oswald-Regular.ttf");
+    }
+
+    body {
+        margin: 0;
+    }
+
+    header,
+    footer,
+    .back-top,
+    .sidebar,
+    .container,
+    .site-intro-meta,
+    .toc-wrapper {
+        display: none;
+    }
+
+    .site-intro {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        /* height: 50vh; */
+        overflow: hidden;
+    }
+
+    .site-intro-placeholder {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        left: 0;
+        width: calc(100% + 300px);
+        height: 100%;
+        background: repeating-linear-gradient(-45deg, #444 0, #444 80px, #333 80px, #333 160px);
+        background-position: center center;
+        transform: translate3d(-226px, 0, 0);
+        animation: gradient-move 2.5s ease-out 0s infinite;
+    }
+
+    @keyframes gradient-move {
+        0% {
+            transform: translate3d(-226px, 0, 0);
+        }
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+</style>
+
+    <link rel="preload" href="/css/style.css?v=20211217" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/css/dark.css?v=20211217" as="style">
+    <link rel="stylesheet" href="/css/dark.css">
+    <link rel="stylesheet" href="/css/mobile.css?v=20211217" media="(max-width: 960px)">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" as="script">
+    <link rel="preload" href="/scripts/main.js?v=20211217" as="script">
+    <link rel="preload" href="/scripts/dark.js?v=20211217" as="script">
+    <link rel="preload" href="/font/Oswald-Regular.ttf" as="font" crossorigin>
+    <link rel="preload" href="https://at.alicdn.com/t/font_327081_1dta1rlogw17zaor.woff" as="font" crossorigin>
+    <!-- algolia -->
+    
+    <!-- 百度统计  -->
+    
+    <!-- Google tag (gtag.js) -->
+    
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script type="text/javascript">
+        if (typeof window.$ == undefined) {
+            console.warn('jquery load from jsdelivr failed, will load local script')
+            document.write('<script src="/lib/jquery.min.js" />')
+        }
+    </script>
+    
+        <body class="post-body">
+    
+        <!-- header -->
+        <header class="header header-mobile">
+    <!-- top read progress line -->
+    <div class="header-element">
+        <div class="read-progress"></div>
+    </div>
+    <!-- sidebar menu button -->
+    <div class="header-element">
+        
+            <div class="header-sidebar-menu">
+        
+            
+                <div style="padding-left: 1px;">&#xe775;</div>
+            
+        </div>
+    </div>
+    <!-- header actions -->
+    <div class="header-actions">
+        <!-- theme mode switch button -->
+        <span class="header-theme-btn header-element">
+            <i class="fas fa-adjust"></i>
+        </span>
+        <!-- back to home page text -->
+        <span class="home-link header-element">
+            <a href=/>Jannish Blog</a>
+        </span>
+    </div>
+    <!-- toggle banner for post layout -->
+    
+        
+            <div class="banner">
+        
+            <div class="blog-title header-element">
+                <a href="/">Jannish Blog</a>
+            </div>
+            <div class="post-title header-element">
+                <a href="#" class="post-name">「现代计算机图形学入门」Whitted-Styles光线追踪</a>
+            </div>
+        </div>
+    
+</header>
+
+        <!-- fixed footer -->
+        <footer class="footer-fixed">
+    <!-- back to top button -->
+    <div class="footer-fixed-element">
+        
+            <div class="back-top back-top-hidden">
+        
+        
+            <div>&#xe639;</div>
+        
+        </div>
+    </div>
+</footer>
+
+        <!-- wrapper -->
+        <div class="wrapper">
+            <div class="site-intro" style="
+
+
+
+
+
+
+
+    height:50vh;
+
+">
+    
+    <!-- 主页  -->
+    
+        
+    <!-- 404页  -->
+    
+    <div class="site-intro-placeholder"></div>
+    <div class="site-intro-img" style="background-image: url(/intro/post-bg.jpg)"></div>
+    <div class="site-intro-meta">
+        <!-- 标题  -->
+        <h1 class="intro-title">
+            <!-- 主页  -->
+            
+                「现代计算机图形学入门」Whitted-Styles光线追踪
+            <!-- 404 -->
+            
+        </h1>
+        <!-- 副标题 -->
+        <p class="intro-subtitle">
+            <!-- 主页副标题  -->
+            
+                
+            <!-- 404 -->
+            
+        </p>
+        <!-- 文章页 meta -->
+        
+            <div class="post-intros">
+                <!-- 文章页标签  -->
+                
+                    <div class= post-intro-tags >
+    
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags="现代计算机图形学入门">现代计算机图形学入门</a>
+    
+</div>
+
+                
+                <!-- 文章字数统计 -->
+                
+                <div class="post-intro-meta">
+                    <!-- 撰写日期 -->
+                    <span class="iconfont-archer post-intro-calander">&#xe676;</span>
+                    <span class="post-intro-time">2022/11/17</span>
+                    <!-- busuanzi -->
+                    
+                        <span id="busuanzi_container_page_pv" class="busuanzi-pv">
+                            <span class="iconfont-archer post-intro-busuanzi">&#xe602;</span>
+                            <span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    
+                    <!-- 文章分享 -->
+                    <span class="share-wrapper">
+                        <span class="iconfont-archer share-icon">&#xe71d;</span>
+                        <span class="share-text">Share</span>
+                        <ul class="share-list">
+                            <li class="iconfont-archer share-qr" data-type="qr">&#xe75b;
+                                <div class="share-qrcode"></div>
+                            </li>
+                            <li class="iconfont-archer" data-type="weibo">&#xe619;</li>
+                            <li class="iconfont-archer" data-type="qzone">&#xe62e;</li>
+                            <li class="iconfont-archer" data-type="twitter">&#xe634;</li>
+                            <li class="iconfont-archer" data-type="facebook">&#xe67a;</li>
+                        </ul>
+                    </span>
+                </div>
+            </div>
+        
+    </div>
+</div>
+
+            <script>
+  // get user agent
+  function getBrowserVersions() {
+    var u = window.navigator.userAgent
+    return {
+      userAgent: u,
+      trident: u.indexOf('Trident') > -1, //IE内核
+      presto: u.indexOf('Presto') > -1, //opera内核
+      webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+      gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+      mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+      ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+      android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+      iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者安卓QQ浏览器
+      iPad: u.indexOf('iPad') > -1, //是否为iPad
+      webApp: u.indexOf('Safari') == -1, //是否为web应用程序，没有头部与底部
+      weixin: u.indexOf('MicroMessenger') == -1, //是否为微信浏览器
+      uc: u.indexOf('UCBrowser') > -1, //是否为android下的UC浏览器
+    }
+  }
+  var browser = {
+    versions: getBrowserVersions(),
+  }
+  console.log('userAgent: ' + browser.versions.userAgent)
+
+  // callback
+  function fontLoaded() {
+    console.log('font loaded')
+    if (document.getElementsByClassName('site-intro-meta')) {
+      document
+        .getElementsByClassName('intro-title')[0]
+        .classList.add('intro-fade-in')
+      document
+        .getElementsByClassName('intro-subtitle')[0]
+        .classList.add('intro-fade-in')
+      var postIntros = document.getElementsByClassName('post-intros')[0]
+      if (postIntros) {
+        postIntros.classList.add('post-fade-in')
+      }
+    }
+  }
+
+  // UC不支持跨域，所以直接显示
+  function asyncCb() {
+    if (browser.versions.uc) {
+      console.log('UCBrowser')
+      fontLoaded()
+    } else {
+      WebFont.load({
+        custom: {
+          families: ['Oswald-Regular'],
+        },
+        loading: function () {
+          // 所有字体开始加载
+          // console.log('font loading');
+        },
+        active: function () {
+          // 所有字体已渲染
+          fontLoaded()
+        },
+        inactive: function () {
+          // 字体预加载失败，无效字体或浏览器不支持加载
+          console.log('inactive: timeout')
+          fontLoaded()
+        },
+        timeout: 5000, // Set the timeout to two seconds
+      })
+    }
+  }
+
+  function asyncErr() {
+    console.warn('script load from CDN failed, will load local script')
+  }
+
+  // load webfont-loader async, and add callback function
+  function async(u, cb, err) {
+    var d = document,
+      t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0]
+    o.src = u
+    if (cb) {
+      o.addEventListener(
+        'load',
+        function (e) {
+          cb(null, e)
+        },
+        false
+      )
+    }
+    if (err) {
+      o.addEventListener(
+        'error',
+        function (e) {
+          err(null, e)
+        },
+        false
+      )
+    }
+    s.parentNode.insertBefore(o, s)
+  }
+
+  var asyncLoadWithFallBack = function (arr, success, reject) {
+    var currReject = function () {
+      reject()
+      arr.shift()
+      if (arr.length) async(arr[0], success, currReject)
+    }
+
+    async(arr[0], success, currReject)
+  }
+
+  asyncLoadWithFallBack(
+    [
+      'https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js',
+      'https://cdn.bootcss.com/webfont/1.6.28/webfontloader.js',
+      "/lib/webfontloader.min.js",
+    ],
+    asyncCb,
+    asyncErr
+  )
+</script>
+
+            <img class="loading" src="/assets/loading.svg" style="display: block; margin: 6rem auto 0 auto; width: 6rem; height: 6rem;" />
+            <div class="container container-unloaded">
+                <main class="main post-page">
+    <article class="article-entry">
+        <h1
+id="现代计算机图形学入门whitted-styles光线追踪">「现代计算机图形学入门」Whitted-Styles光线追踪</h1>
+<h2 id="代码框架">1. 代码框架</h2>
+<p>整个代码框架可以分为 6 大类：</p>
+<ul>
+<li>工具类：global.hpp、vector.hpp</li>
+<li>光源类：Light.hpp</li>
+<li>物体类：Object.hpp、Sphere.hpp、Triangle.hpp</li>
+<li>场景类：Scene.hpp（Scene.cpp 基本没啥代码不考虑）</li>
+<li>主函数：main.cpp</li>
+<li>渲染类：Renderer.hpp（Renderer.cpp 同上）</li>
+</ul>
+<h2 id="工具类-光源类">2. 工具类 &amp; 光源类</h2>
+<h3 id="global.hpp">2.1 global.hpp</h3>
+<p>global.hpp 中主要定义了一些全局变量和函数，如：<span
+class="math inline">\(\pi\)</span>
+值、材质类型、求随机数、一元二次求解函数等等；</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">inline</span> <span class="type">bool</span> <span class="title">solveQuadratic</span><span class="params">(<span class="type">const</span> <span class="type">float</span>&amp; a, <span class="type">const</span> <span class="type">float</span>&amp; b, <span class="type">const</span> <span class="type">float</span>&amp; c, <span class="type">float</span>&amp; x0, <span class="type">float</span>&amp; x1)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">float</span> discr = b * b - <span class="number">4</span> * a * c;</span><br><span class="line">    <span class="keyword">if</span> (discr &lt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (discr == <span class="number">0</span>)</span><br><span class="line">        x0 = x1 = <span class="number">-0.5</span> * b / a;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;	<span class="comment">// 这里 b 要判断正负，当 b &gt; 0 时与 delta 相加，当 b &lt; 0是与 delta 相减；</span></span><br><span class="line">        <span class="comment">// 个人理解：避免浮点数相减来减小误差，比如如果相减后的浮点数很小，由于计算精度问题会有微小误差，就会对结果影响很大。</span></span><br><span class="line">        <span class="type">float</span> q = (b &gt; <span class="number">0</span>) ? <span class="number">-0.5</span> * (b + <span class="built_in">sqrt</span>(discr)) : <span class="number">-0.5</span> * (b - <span class="built_in">sqrt</span>(discr));</span><br><span class="line">        x0 = q / a;</span><br><span class="line">        x1 = c / q;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (x0 &gt; x1)</span><br><span class="line">        std::<span class="built_in">swap</span>(x0, x1);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="vector.hpp">2.2 Vector.hpp</h3>
+<p>Vector.hpp
+中主要提供了常见的向量操作，如：向量点乘、叉乘、单位化、插值等。</p>
+<h3 id="light.hpp">2.3 Light.hpp</h3>
+<p>Light.hpp 中定义了光源类，包括光照强度和光源位置。</p>
+<h2 id="物体类">3. 物体类</h2>
+<h3 id="object.hpp">3.1 Object.hpp</h3>
+<p>定义了物体的材质类型（materialType）、折射率（ior）、漫反射系数（Kd）、漫反射颜色（diffuseColor）、高光系数（Ks）、高光衰减指数（Exponent），</p>
+<p>以及三个虚函数：判断是否和光线相交的 intersect、获取表面属性的
+getSurfaceProperties、计算漫反射颜色的 evalDiffuseColor。</p>
+<h3 id="sphere.hpp">3.2 Sphere.hpp</h3>
+<p>主要重载了 intersect
+判断光线是否和球面相交，并将离光线起始点最近的交点
+（tNear）返回。通过将光线方程代入球体方程即可得到；</p>
+<p>还重载了 getSurfaceProperties 来获取球面交点处的法向量。</p>
+<p><img src="\images\RayIntersectWithSphere.png" style="zoom:80%;" /></p>
+<h3 id="triangle.hpp">3.3 Triangle.hpp</h3>
+<p>这里的三角形在场景中对应着地面，地面由两个三角形拼接而成。</p>
+<p>除了基类 Object
+的成员变量，还定义了三角形数量（numTriangles）、顶点数组（vertices）、顶点下标数组（vertexIndex）和
+uv 坐标数组（stCoordinates）</p>
+<p>后三者全使用智能指针 <strong>unique_ptr</strong>
+来管理是防止内存泄露，即使异常发生也可帮助避免资源泄露，而无需手动
+delete，这在三角形面数很多的场景中更加有用。</p>
+<p>此外，重载了 intersect
+判断光线是否和所有的三角形相交，并将相交的第几个三角形（index）、最近的交点
+（tNear）以及 重心坐标（u，v）返回。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">rayTriangleIntersect</span><span class="params">(<span class="type">const</span> Vector3f&amp; v0, <span class="type">const</span> Vector3f&amp; v1, <span class="type">const</span> Vector3f&amp; v2, <span class="type">const</span> Vector3f&amp; orig,</span></span></span><br><span class="line"><span class="params"><span class="function">                          <span class="type">const</span> Vector3f&amp; dir, <span class="type">float</span>&amp; tnear, <span class="type">float</span>&amp; u, <span class="type">float</span>&amp; v)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> Implement this function that tests whether the triangle</span></span><br><span class="line">    <span class="comment">// that&#x27;s specified bt v0, v1 and v2 intersects with the ray (whose</span></span><br><span class="line">    <span class="comment">// origin is *orig* and direction is *dir*)</span></span><br><span class="line">    <span class="comment">// Also don&#x27;t forget to update tnear, u and v.</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>还重载了 getSurfaceProperties
+来获取三角形交点处的法线和经过重心坐标插值后的 uv 坐标。</p>
+<p>最后还重载了 evalDiffuseColor 自动生成一张纹理图（即地板）。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Vector3f <span class="title">evalDiffuseColor</span><span class="params">(<span class="type">const</span> Vector2f&amp; st)</span> <span class="type">const</span> <span class="keyword">override</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">float</span> scale = <span class="number">5</span>;</span><br><span class="line">    <span class="comment">// fmodf是对浮点数取模求其余数，这里模为1，相当于取其小数部分；</span></span><br><span class="line">    <span class="comment">// 即 st.x 小数部分在[0, 0.5]时，(fmodf() &gt; 0.5) = 0，st.x 小数部分在(0.5, 1]时，(fmodf() &gt; 0.5) = 1，st.y同理；</span></span><br><span class="line">    <span class="comment">// 由于 scale = 5，相当于x轴被分成了10分，分别为[0,1,0,1,0,1,0,1,0,1]，y轴同样；</span></span><br><span class="line">    <span class="comment">// ^ 是异或，同为0，异为1；</span></span><br><span class="line">    <span class="type">float</span> pattern = (<span class="built_in">fmodf</span>(st.x * scale, <span class="number">1</span>) &gt; <span class="number">0.5</span>) ^ (<span class="built_in">fmodf</span>(st.y * scale, <span class="number">1</span>) &gt; <span class="number">0.5</span>);</span><br><span class="line">    <span class="comment">// (0.815, 0.235, 0.031)为红色，后者为黄色</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">lerp</span>(<span class="built_in">Vector3f</span>(<span class="number">0.815</span>, <span class="number">0.235</span>, <span class="number">0.031</span>), <span class="built_in">Vector3f</span>(<span class="number">0.937</span>, <span class="number">0.937</span>, <span class="number">0.231</span>), pattern);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="场景类">4. 场景类</h2>
+<h3 id="scene.hpp">4.1 Scene.hpp</h3>
+<p>主要定义了屏幕的宽高、摄像机的 fov
+参数、光线最大递归深度、epsilon（后面会讲作用）、场景背景颜色；</p>
+<p>还定义了两个数组，分别存放场景中的所有物体和所有光源。</p>
+<h2 id="主函数">5. 主函数</h2>
+<h3 id="main.cpp">main.cpp</h3>
+<p>实例化了场景和所有的物体、光源。需要注意的是如果观察物体的坐标值，可以推测默认是在右手坐标系下，</p>
+<p>摄像机看向 -Z 轴。</p>
+<p>%%%%%%%%%%%%%%%%%%%%%%%%%%%图%%%%%%%%%%%%%%%%%%%%%%%</p>
+<h2 id="渲染类">6. 渲染类</h2>
+<h3 id="renderer.cpp">6.1 Renderer.cpp</h3>
+<p>终于说到最重要的部分渲染这一块了，这是最精髓的地方，我们按顺序一点点看。</p>
+<h4 id="反射向量">6.1.1 反射向量</h4>
+<p>要求一个向量 <span class="math inline">\(I\)</span>
+经过反射后的反射向量 <span class="math inline">\(R\)</span>。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Vector3f <span class="title">reflect</span><span class="params">(<span class="type">const</span> Vector3f &amp;I, <span class="type">const</span> Vector3f &amp;N)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> I - <span class="number">2</span> * <span class="built_in">dotProduct</span>(I, N) * N;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="\images\ReflectVec.png" style="zoom:25%;" align="right"/>推导很简单：</p>
+<p>由于入射角等于出射角，向量 <span class="math inline">\(I\)</span> 和
+<span class="math inline">\(R\)</span> 可以形成一个菱形，</p>
+<p>故 <span class="math inline">\(I\)</span> 的模在法线 <span
+class="math inline">\(N\)</span>
+上的投影的两倍就是菱形的对角线，即：<span
+class="math inline">\(2*(I·N)*N\)</span>。</p>
+<p>所以反射向量 <span class="math inline">\(R=I-2*(I·N)*N\)</span>。</p>
+<h4 id="折射向量">6.1.2 折射向量</h4>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Vector3f <span class="title">refract</span><span class="params">(<span class="type">const</span> Vector3f &amp;I, <span class="type">const</span> Vector3f &amp;N, <span class="type">const</span> <span class="type">float</span> &amp;ior)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">float</span> cosi = <span class="built_in">clamp</span>(<span class="number">-1</span>, <span class="number">1</span>, <span class="built_in">dotProduct</span>(I, N));</span><br><span class="line">    <span class="type">float</span> etai = <span class="number">1</span>, etat = ior;</span><br><span class="line">    Vector3f n = N;</span><br><span class="line">    <span class="keyword">if</span> (cosi &lt; <span class="number">0</span>) &#123; cosi = -cosi; &#125; <span class="keyword">else</span> &#123; std::<span class="built_in">swap</span>(etai, etat); n = -N; &#125;</span><br><span class="line">    <span class="type">float</span> eta = etai / etat;</span><br><span class="line">    <span class="type">float</span> k = <span class="number">1</span> - eta * eta * (<span class="number">1</span> - cosi * cosi);</span><br><span class="line">    <span class="keyword">return</span> k &lt; <span class="number">0</span> ? <span class="number">0</span> : eta * I + (eta * cosi - <span class="built_in">sqrtf</span>(k)) * n;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们先看折射向量怎么算，这里计算折射向量用到了斯涅尔定律（Snell's
+law），即 入射介质折射率 <span class="math inline">\(\eta_{i}\)</span>
+与 入射角 <span class="math inline">\(sin \theta_{i}\)</span>
+之积等于出射介质折射率 <span class="math inline">\(\eta_{t}\)</span> 与
+出射角 <span class="math inline">\(sin \theta_{t}\)</span> 之积。</p>
+<p><img src="\images\SnellLaw.png" style="zoom:80%;" /></p>
+<p>根据上图，我们很容易求出 <span class="math inline">\(sin
+\theta_{t}\)</span> 和 <span class="math inline">\(cos
+\theta_{t}\)</span>，它们正是我们要求的折射向量在水平方向和竖直方向的投影长度。</p>
+<p>剩下要做的就是如何用已知条件：入射向量 <span
+class="math inline">\(I\)</span>、法线 <span
+class="math inline">\(N\)</span>、入射角 <span
+class="math inline">\(\theta_{i}\)</span>
+表示水平方向的向量和竖直方向的向量。</p>
+<p>竖直方向很简单就是 <span
+class="math inline">\(-N\)</span>，水平方向是 <span
+class="math inline">\(\dfrac{(I·N)*N -
+I}{sin\theta_{i}}\)</span>（都需要单位化），所以： <span
+class="math display">\[
+refract = sin\theta_{t} * \dfrac{(I·N)*N - I}{sin\theta_{i}} +
+cost\theta_{t} * (-N)
+\]</span> 化简一下可得：<span class="math inline">\(refract =
+-\dfrac{\eta_{i}}{\eta_{t}} * I + \left [ \dfrac{\eta_{i}}{\eta_{t}} *
+(I·N) - cost\theta_{t} \right ] * N\)</span>。</p>
+<p>很明显，此公式代码 <code>eta * I</code>
+不一样，多了个负号，这是因为代码中的入射向量与我们推导的相反。</p>
+<p>此外，我们还需要考虑光线在物体内和物体外情况。在物体外时，物体表面法线与光线的夹角大于90°，余弦值为负，由于计算的公式与光线的方向相反，所以我们需要把余弦值取反；在物体内时，物体表面法线与光线的夹角小于90°，本来是需要将余弦值取反的，但是由于法线正好也是反的，所以余弦值不需要取反了，只需要将法线同时，同时交换下折射介质。</p>
+<h4 id="菲涅尔方程">6.1.3 菲涅尔方程</h4>
+<p>菲涅尔方程求的是：入射光的角度与反射光的强度、折射光的强度之间的关系。这里直接根据老师给出的公式即可。</p>
+<p>不过让我存在疑惑的是代码中的 Rs 和 Rp
+好像写反了，不过不影响就是就是了。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">float</span> <span class="title">fresnel</span><span class="params">(<span class="type">const</span> Vector3f &amp;I, <span class="type">const</span> Vector3f &amp;N, <span class="type">const</span> <span class="type">float</span> &amp;ior)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">float</span> cosi = <span class="built_in">clamp</span>(<span class="number">-1</span>, <span class="number">1</span>, <span class="built_in">dotProduct</span>(I, N));</span><br><span class="line">    <span class="type">float</span> etai = <span class="number">1</span>, etat = ior;</span><br><span class="line">    <span class="keyword">if</span> (cosi &gt; <span class="number">0</span>) &#123;  std::<span class="built_in">swap</span>(etai, etat); &#125;</span><br><span class="line">    <span class="comment">// Compute sini using Snell&#x27;s law</span></span><br><span class="line">    <span class="type">float</span> sint = etai / etat * <span class="built_in">sqrtf</span>(std::<span class="built_in">max</span>(<span class="number">0.f</span>, <span class="number">1</span> - cosi * cosi));</span><br><span class="line">    <span class="comment">// Total internal reflection</span></span><br><span class="line">    <span class="keyword">if</span> (sint &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="type">float</span> cost = <span class="built_in">sqrtf</span>(std::<span class="built_in">max</span>(<span class="number">0.f</span>, <span class="number">1</span> - sint * sint));</span><br><span class="line">        cosi = <span class="built_in">fabsf</span>(cosi);</span><br><span class="line">        <span class="type">float</span> Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));</span><br><span class="line">        <span class="type">float</span> Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));</span><br><span class="line">        <span class="keyword">return</span> (Rs * Rs + Rp * Rp) / <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// As a consequence of the conservation of energy, transmittance is given by:</span></span><br><span class="line">    <span class="comment">// kt = 1 - kr;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="\images\fresnelTerm.png" style="zoom:80%;" /></p>
+<h4 id="光线与物体求交trace">6.1.4 光线与物体求交(trace)</h4>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">std::optional&lt;hit_payload&gt; <span class="title">trace</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="type">const</span> Vector3f &amp;orig, <span class="type">const</span> Vector3f &amp;dir,</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="type">const</span> std::vector&lt;std::unique_ptr&lt;Object&gt; &gt; &amp;objects)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">float</span> tNear = kInfinity;</span><br><span class="line">    std::optional&lt;hit_payload&gt; payload;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span> &amp; object : objects)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">float</span> tNearK = kInfinity;</span><br><span class="line">        <span class="type">uint32_t</span> indexK;</span><br><span class="line">        Vector2f uvK;</span><br><span class="line">        <span class="keyword">if</span> (object-&gt;<span class="built_in">intersect</span>(orig, dir, tNearK, indexK, uvK) &amp;&amp; tNearK &lt; tNear)</span><br><span class="line">        &#123;</span><br><span class="line">            payload.<span class="built_in">emplace</span>();</span><br><span class="line">            payload-&gt;hit_obj = object.<span class="built_in">get</span>();</span><br><span class="line">            payload-&gt;tNear = tNearK;</span><br><span class="line">            payload-&gt;index = indexK;</span><br><span class="line">            payload-&gt;uv = uvK;</span><br><span class="line">            tNear = tNearK;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> payload;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这一步将光线与所有物体求交，并返回距离光线起点最近的点的信息。参数
+orig 和 dir 描述了光线起点的方向，objects
+是求交的物理列表。payload是一个结构体，用于存储交点的信息，如相交的物体指针（hit_obj），离光线起点的距离（tNear），相交三角形的下标（index，如果相交的是三角形），uv坐标（uv）。</p>
+<h4 id="whitted风格的光线追踪算法castray">6.1.5
+Whitted风格的光线追踪算法(castRay)</h4>
+<p>castRay
+实现的是一个递归的计算光线与物体交点处颜色的过程，规定最大深度是
+5。首先通过计算光线与所有物体的交获得交点处的uv坐标和法线，用于后续的着色。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Vector3f <span class="title">castRay</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="type">const</span> Vector3f &amp;orig, <span class="type">const</span> Vector3f &amp;dir, <span class="type">const</span> Scene&amp; scene,</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="type">int</span> depth)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (depth &gt; scene.maxDepth) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">Vector3f</span>(<span class="number">0.0</span>,<span class="number">0.0</span>,<span class="number">0.0</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Vector3f hitColor = scene.backgroundColor;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">auto</span> payload = <span class="built_in">trace</span>(orig, dir, scene.<span class="built_in">get_objects</span>()); payload)</span><br><span class="line">    &#123;</span><br><span class="line">        Vector3f hitPoint = orig + dir * payload-&gt;tNear;</span><br><span class="line">        Vector3f N; <span class="comment">// normal</span></span><br><span class="line">        Vector2f st; <span class="comment">// st coordinates</span></span><br><span class="line">        payload-&gt;hit_obj-&gt;<span class="built_in">getSurfaceProperties</span>(hitPoint, dir, payload-&gt;index, payload-&gt;uv, N, st);</span><br><span class="line">        ······</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后根据材质的不同，分别进行着色：</p>
+<p>如果是
+REFLECTION_AND_REFRACTION，又存在反射和折射，则分别计算反射光线和折射光线，分别继续求反射光线和折射光线与场景物体的交点，然后根据菲涅尔定理混合其颜色。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (payload-&gt;hit_obj-&gt;materialType) &#123;</span><br><span class="line">    <span class="keyword">case</span> REFLECTION_AND_REFRACTION:</span><br><span class="line">        &#123;</span><br><span class="line">            Vector3f reflectionDirection = <span class="built_in">normalize</span>(<span class="built_in">reflect</span>(dir, N));</span><br><span class="line">            Vector3f refractionDirection = <span class="built_in">normalize</span>(<span class="built_in">refract</span>(dir, N, payload-&gt;hit_obj-&gt;ior));</span><br><span class="line">            Vector3f reflectionRayOrig = (<span class="built_in">dotProduct</span>(reflectionDirection, N) &lt; <span class="number">0</span>) ?</span><br><span class="line">                hitPoint - N * scene.epsilon :</span><br><span class="line">            	hitPoint + N * scene.epsilon;</span><br><span class="line">            Vector3f refractionRayOrig = (<span class="built_in">dotProduct</span>(refractionDirection, N) &lt; <span class="number">0</span>) ?</span><br><span class="line">                hitPoint - N * scene.epsilon :</span><br><span class="line">            	hitPoint + N * scene.epsilon;</span><br><span class="line">            Vector3f reflectionColor = <span class="built_in">castRay</span>(reflectionRayOrig, reflectionDirection, scene, depth + <span class="number">1</span>);</span><br><span class="line">            Vector3f refractionColor = <span class="built_in">castRay</span>(refractionRayOrig, refractionDirection, scene, depth + <span class="number">1</span>);</span><br><span class="line">            <span class="type">float</span> kr = <span class="built_in">fresnel</span>(dir, N, payload-&gt;hit_obj-&gt;ior);</span><br><span class="line">            hitColor = reflectionColor * kr + refractionColor * (<span class="number">1</span> - kr);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ······</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>需要注意的是我们计算向量起点使用 epsilon
+做了一些调整。这是由于计算机精度，直接使用起点产生噪声值，如下图：</p>
+<p><img src="\images\20200420204127966.png" style="zoom:50%;" /></p>
+<p>这是因为相交的由于精度损失，跑到了内部，所以我们需要使用一个
+epsilon将其救出来。</p>
+<p><img src="\images\20200420205835449.png" style="zoom:50%;" /></p>
+<p>对于反射光线和折射光线，它们可能与法线同向也可能异向，所以我们通过法线与光线的点乘来判断。当同向时，按照法线方向移动一点点，当异向时，按照法线的相反方向移动一点点。</p>
+<p><img src="\images\20200420210042119.png" style="zoom:60%;" /></p>
+<p>如果是
+REFLECTION，即只存在反射，只用考虑反射即可，不需要考虑折射。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> REFLECTION:</span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">float</span> kr = <span class="built_in">fresnel</span>(dir, N, payload-&gt;hit_obj-&gt;ior);</span><br><span class="line">    Vector3f reflectionDirection = <span class="built_in">reflect</span>(dir, N);</span><br><span class="line">    Vector3f reflectionRayOrig = (<span class="built_in">dotProduct</span>(reflectionDirection, N) &lt; <span class="number">0</span>) ?</span><br><span class="line">        hitPoint + N * scene.epsilon :</span><br><span class="line">        hitPoint - N * scene.epsilon;</span><br><span class="line">    hitColor = <span class="built_in">castRay</span>(reflectionRayOrig, reflectionDirection, scene, depth + <span class="number">1</span>) * kr;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于漫反射材质，我们依据Phong光照模型计算其着色。</p>
+<p>我们先判断交点是否在阴影里，即是否能被光线看到，做法和shadow
+mapping很像，判断从交点向光源发出光线打到第一个点的距离和光源到交点的距离是否相等即可。在阴影里，则漫反射光为
+0，否则按照光照模型计算。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">default</span>:</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// [comment]</span></span><br><span class="line">    <span class="comment">// We use the Phong illumation model int the default case. The phong model</span></span><br><span class="line">    <span class="comment">// is composed of a diffuse and a specular reflection component.</span></span><br><span class="line">    <span class="comment">// [/comment]</span></span><br><span class="line">    Vector3f lightAmt = <span class="number">0</span>, specularColor = <span class="number">0</span>;</span><br><span class="line">    Vector3f shadowPointOrig = (<span class="built_in">dotProduct</span>(dir, N) &lt; <span class="number">0</span>) ?</span><br><span class="line">        hitPoint + N * scene.epsilon :</span><br><span class="line">        hitPoint - N * scene.epsilon;</span><br><span class="line">    <span class="comment">// [comment]</span></span><br><span class="line">    <span class="comment">// Loop over all lights in the scene and sum their contribution up</span></span><br><span class="line">    <span class="comment">// We also apply the lambert cosine law</span></span><br><span class="line">    <span class="comment">// [/comment]</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span>&amp; light : scene.<span class="built_in">get_lights</span>()) &#123;</span><br><span class="line">        Vector3f lightDir = light-&gt;position - hitPoint;</span><br><span class="line">        <span class="comment">// square of the distance between hitPoint and the light</span></span><br><span class="line">        <span class="type">float</span> lightDistance2 = <span class="built_in">dotProduct</span>(lightDir, lightDir);</span><br><span class="line">        lightDir = <span class="built_in">normalize</span>(lightDir);</span><br><span class="line">        <span class="type">float</span> LdotN = std::<span class="built_in">max</span>(<span class="number">0.f</span>, <span class="built_in">dotProduct</span>(lightDir, N));</span><br><span class="line">        <span class="comment">// is the point in shadow, and is the nearest occluding object closer to the object than the light itself?</span></span><br><span class="line">        <span class="keyword">auto</span> shadow_res = <span class="built_in">trace</span>(shadowPointOrig, lightDir, scene.<span class="built_in">get_objects</span>());</span><br><span class="line">        <span class="type">bool</span> inShadow = shadow_res &amp;&amp; (shadow_res-&gt;tNear * shadow_res-&gt;tNear &lt; lightDistance2);</span><br><span class="line"></span><br><span class="line">        lightAmt += inShadow ? <span class="number">0</span> : light-&gt;intensity * LdotN;</span><br><span class="line">        Vector3f reflectionDirection = <span class="built_in">reflect</span>(-lightDir, N);</span><br><span class="line"></span><br><span class="line">        specularColor += <span class="built_in">powf</span>(std::<span class="built_in">max</span>(<span class="number">0.f</span>, -<span class="built_in">dotProduct</span>(reflectionDirection, dir)),</span><br><span class="line">                              payload-&gt;hit_obj-&gt;specularExponent) * light-&gt;intensity;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    hitColor = lightAmt * payload-&gt;hit_obj-&gt;<span class="built_in">evalDiffuseColor</span>(st) * payload-&gt;hit_obj-&gt;Kd + specularColor * payload-&gt;hit_obj-&gt;Ks;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="从眼睛向屏幕像素发出光线render">6.1.6
+从眼睛向屏幕像素发出光线(Render)</h4>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Renderer::Render</span><span class="params">(<span class="type">const</span> Scene&amp; scene)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">std::vector&lt;Vector3f&gt; <span class="title">framebuffer</span><span class="params">(scene.width * scene.height)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">float</span> scale = std::<span class="built_in">tan</span>(<span class="built_in">deg2rad</span>(scene.fov * <span class="number">0.5f</span>));</span><br><span class="line">    <span class="type">float</span> imageAspectRatio = scene.width / (<span class="type">float</span>)scene.height;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Use this variable as the eye position to start your rays.</span></span><br><span class="line">    <span class="function">Vector3f <span class="title">eye_pos</span><span class="params">(<span class="number">0</span>)</span></span>;</span><br><span class="line">    <span class="type">int</span> m = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; scene.height; ++j)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; scene.width; ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// generate primary ray direction</span></span><br><span class="line">            <span class="type">float</span> x;</span><br><span class="line">            <span class="type">float</span> y;</span><br><span class="line">            <span class="comment">// <span class="doctag">TODO:</span> Find the x and y positions of the current pixel to get the direction</span></span><br><span class="line">            <span class="comment">// vector that passes through it.</span></span><br><span class="line">            <span class="comment">// Also, don&#x27;t forget to multiply both of them with the variable *scale*, and</span></span><br><span class="line">            <span class="comment">// x (horizontal) variable with the *imageAspectRatio*            </span></span><br><span class="line"></span><br><span class="line">            Vector3f dir = <span class="built_in">Vector3f</span>(x, y, <span class="number">-1</span>); <span class="comment">// Don&#x27;t forget to normalize this direction!</span></span><br><span class="line">            framebuffer[m++] = <span class="built_in">castRay</span>(eye_pos, dir, scene, <span class="number">0</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">UpdateProgress</span>(j / (<span class="type">float</span>)scene.height);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// save framebuffer to file</span></span><br><span class="line">    FILE* fp = <span class="built_in">fopen</span>(<span class="string">&quot;binary.ppm&quot;</span>, <span class="string">&quot;wb&quot;</span>);</span><br><span class="line">    (<span class="type">void</span>)<span class="built_in">fprintf</span>(fp, <span class="string">&quot;P6\n%d %d\n255\n&quot;</span>, scene.width, scene.height);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> i = <span class="number">0</span>; i &lt; scene.height * scene.width; ++i) &#123;</span><br><span class="line">        <span class="type">static</span> <span class="type">unsigned</span> <span class="type">char</span> color[<span class="number">3</span>];</span><br><span class="line">        color[<span class="number">0</span>] = (<span class="type">char</span>)(<span class="number">255</span> * <span class="built_in">clamp</span>(<span class="number">0</span>, <span class="number">1</span>, framebuffer[i].x));</span><br><span class="line">        color[<span class="number">1</span>] = (<span class="type">char</span>)(<span class="number">255</span> * <span class="built_in">clamp</span>(<span class="number">0</span>, <span class="number">1</span>, framebuffer[i].y));</span><br><span class="line">        color[<span class="number">2</span>] = (<span class="type">char</span>)(<span class="number">255</span> * <span class="built_in">clamp</span>(<span class="number">0</span>, <span class="number">1</span>, framebuffer[i].z));</span><br><span class="line">        <span class="built_in">fwrite</span>(color, <span class="number">1</span>, <span class="number">3</span>, fp);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">fclose</span>(fp);    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </article>
+    <!-- license -->
+    
+        <div class="license-wrapper">
+            <p>Author：<a href="https://nathanielfeng.github.io">Jannish</a>
+            <p>Link：<a href="https://nathanielfeng.github.io/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">https://nathanielfeng.github.io/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/</a>
+            <p>Publish date：<a href="https://nathanielfeng.github.io/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">November 17th 2022, 12:00:00 am</a>
+            <p>Update date：<a href="https://nathanielfeng.github.io/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">September 5th 2023, 9:22:01 am</a>
+            <p>License：本文采用<a rel="license noopener" target="_blank" href="http://creativecommons.org/licenses/by-nc/4.0/">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
+        </div>
+    
+    <!-- paginator -->
+    <ul class="post-paginator">
+        <li class="next">
+            
+                <div class="nextSlogan">Next Post</div>
+                <a href="/2022/12/03/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D7.%20%E6%9D%90%E8%B4%A8%E4%B8%8E%E5%A4%96%E8%A7%82/" title="「现代计算机图形学入门」材质和外观">
+                    <div class="nextTitle">「现代计算机图形学入门」材质和外观</div>
+                </a>
+            
+        </li>
+        <li class="previous">
+            
+                <div class="prevSlogan">Previous Post</div>
+                <a href="/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/" title="「现代计算机图形学入门」光线追踪">
+                    <div class="prevTitle">「现代计算机图形学入门」光线追踪</div>
+                </a>
+            
+        </li>
+    </ul>
+    <!-- comment -->
+    
+        <div class="post-comment">
+            <!-- 来必力 City 版安装代码 -->
+
+
+            
+
+            
+
+            
+
+            <!-- utteranc评论 -->
+
+
+            <!-- partial('_partial/comment/changyan') -->
+            <!--PC版-->
+
+
+            
+            
+
+            
+
+        </div>
+    
+    <!-- timeliness note -->
+    <!-- idea from: https://hexo.fluid-dev.com/posts/hexo-injector/#%E6%96%87%E7%AB%A0%E6%97%B6%E6%95%88%E6%80%A7%E6%8F%90%E7%A4%BA -->
+    
+    <!-- Mathjax -->
+    
+        
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.0/es5/tex-mml-chtml.js"></script>
+
+
+    
+</main>
+
+                <!-- profile -->
+                
+            </div>
+            <footer class="footer footer-unloaded">
+    <!-- social  -->
+    
+        <div class="social">
+            
+    
+        
+            
+                <a href="mailto:645931808@qq.com" class="iconfont-archer email" title=email ></a>
+            
+        
+    
+        
+            
+                <a href="//github.com/nathanielfeng" class="iconfont-archer github" target="_blank" title=github></a>
+            
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+
+        </div>
+    
+    <!-- powered by Hexo  -->
+    <div class="copyright">
+        <span id="hexo-power">Powered by <a href="https://hexo.io/" target="_blank">Hexo</a></span><span class="iconfont-archer power">&#xe635;</span><span id="theme-info">theme <a href="https://github.com/fi3ework/hexo-theme-archer" target="_blank">Archer</a></span>
+    </div>
+    <!-- website approve for Chinese user -->
+    
+    <!-- 不蒜子  -->
+    
+        <div class="busuanzi-container">
+            
+             
+                <span id="busuanzi_container_site_pv">PV: <span id="busuanzi_value_site_pv"></span> :)</span>
+            
+        </div>
+    	
+</footer>
+
+        </div>
+        <!-- toc -->
+        
+            <div class="toc-wrapper toc-wrapper-loding" style=
+
+
+
+
+
+
+
+    top:50vh;
+
+>
+                <div class="toc-catalog">
+                    <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
+                </div>
+                <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8whitted-styles%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA"><span class="toc-text">「现代计算机图形学入门」Whitted-Styles光线追踪</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E6%A1%86%E6%9E%B6"><span class="toc-text">1. 代码框架</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B7%A5%E5%85%B7%E7%B1%BB-%E5%85%89%E6%BA%90%E7%B1%BB"><span class="toc-text">2. 工具类 &amp; 光源类</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#global.hpp"><span class="toc-text">2.1 global.hpp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#vector.hpp"><span class="toc-text">2.2 Vector.hpp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#light.hpp"><span class="toc-text">2.3 Light.hpp</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%89%A9%E4%BD%93%E7%B1%BB"><span class="toc-text">3. 物体类</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#object.hpp"><span class="toc-text">3.1 Object.hpp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#sphere.hpp"><span class="toc-text">3.2 Sphere.hpp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#triangle.hpp"><span class="toc-text">3.3 Triangle.hpp</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E7%B1%BB"><span class="toc-text">4. 场景类</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#scene.hpp"><span class="toc-text">4.1 Scene.hpp</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E5%87%BD%E6%95%B0"><span class="toc-text">5. 主函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#main.cpp"><span class="toc-text">main.cpp</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B8%B2%E6%9F%93%E7%B1%BB"><span class="toc-text">6. 渲染类</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#renderer.cpp"><span class="toc-text">6.1 Renderer.cpp</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%8D%E5%B0%84%E5%90%91%E9%87%8F"><span class="toc-text">6.1.1 反射向量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8A%98%E5%B0%84%E5%90%91%E9%87%8F"><span class="toc-text">6.1.2 折射向量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%8F%B2%E6%B6%85%E5%B0%94%E6%96%B9%E7%A8%8B"><span class="toc-text">6.1.3 菲涅尔方程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%89%E7%BA%BF%E4%B8%8E%E7%89%A9%E4%BD%93%E6%B1%82%E4%BA%A4trace"><span class="toc-text">6.1.4 光线与物体求交(trace)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#whitted%E9%A3%8E%E6%A0%BC%E7%9A%84%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA%E7%AE%97%E6%B3%95castray"><span class="toc-text">6.1.5
+Whitted风格的光线追踪算法(castRay)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%8E%E7%9C%BC%E7%9D%9B%E5%90%91%E5%B1%8F%E5%B9%95%E5%83%8F%E7%B4%A0%E5%8F%91%E5%87%BA%E5%85%89%E7%BA%BFrender"><span class="toc-text">6.1.6
+从眼睛向屏幕像素发出光线(Render)</span></a></li></ol></li></ol></li></ol></li></ol>
+            </div>
+        
+        <!-- sidebar -->
+        <div class="sidebar sidebar-hide">
+    <ul class="sidebar-tabs sidebar-tabs-active-0">
+        <li class="sidebar-tab-archives"><span class="iconfont-archer">&#xe67d;</span><span class="tab-name">Archive</span></li>
+        <li class="sidebar-tab-tags"><span class="iconfont-archer">&#xe61b;</span><span class="tab-name">Tag</span></li>
+        <li class="sidebar-tab-categories"><span class="iconfont-archer">&#xe666;</span><span class="tab-name">Cate</span></li>
+    </ul>
+    <div class="sidebar-content sidebar-content-show-archive">
+        <div class="sidebar-panel-archives">
+    <!-- 在 ejs 中将 archive 按照时间排序 -->
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    
+    
+    
+    
+    <div class="total-and-search">
+        <div class="total-archive">
+        Total : 25
+        </div>
+        <!-- search  -->
+        
+    </div>
+    
+    <div class="post-archive">
+    
+        
+            
+            
+            <div class="archive-year"> 2023 </div>
+            <ul class="year-list">
+            
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/28</span>
+            <a class="archive-post-title" href="/2023/05/28/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D4.%20%E5%AE%9E%E6%97%B6%E7%8E%AF%E5%A2%83%E5%85%89%E7%85%A7/">「高质量实时渲染」实时环境光照</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/15</span>
+            <a class="archive-post-title" href="/2023/05/15/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D3.%20%E5%AE%9E%E6%97%B6%E9%98%B4%E5%BD%B1/">「高质量实时渲染」实时阴影</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/05</span>
+            <a class="archive-post-title" href="/2023/05/05/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D2.%20%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%9F%BA%E7%A1%80%E6%A6%82%E8%BF%B0/">「高质量实时渲染」图形学基础概述</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/29</span>
+            <a class="archive-post-title" href="/2023/04/29/%E3%80%8C%E9%AB%98%E8%B4%A8%E9%87%8F%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E3%80%8D1.%20%E5%BC%95%E8%A8%80%E4%B8%8E%E6%A6%82%E8%BF%B0/">「高质量实时渲染」引言与概述</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/15</span>
+            <a class="archive-post-title" href="/2023/04/15/%E3%80%8CNORI%E3%80%8D%E7%8E%AF%E5%A2%83%E6%98%A0%E5%B0%84%E4%B8%8E%E5%85%89%E6%BA%90%E9%87%87%E6%A0%B7/">「NORI」环境映射与光源采样</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/01</span>
+            <a class="archive-post-title" href="/2023/04/01/%E3%80%8CNORI%E3%80%8D%E8%92%99%E7%89%B9%E5%8D%A1%E6%B4%9B%E9%87%87%E6%A0%B7%E4%B8%8E%E7%8E%AF%E5%A2%83%E5%85%89%E9%81%AE%E8%94%BD/">「NORI」蒙特卡洛采样与环境光遮蔽</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/20</span>
+            <a class="archive-post-title" href="/2023/03/20/%E3%80%8CNORI%E3%80%8D%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E7%9A%84%E6%A1%86%E6%9E%B6%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/">「NORI」从零开始的框架源码解读</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/24</span>
+            <a class="archive-post-title" href="/2023/02/24/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A7%EF%BC%9ABRDF%E4%B8%8E%E8%B7%AF%E5%BE%84%E8%BF%BD%E8%B8%AA/">「现代计算机图形学入门」路径追踪与 BRDF</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/12</span>
+            <a class="archive-post-title" href="/2023/02/12/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D11.%20%E5%8A%A8%E7%94%BB/">「现代计算机图形学入门」动画</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/09</span>
+            <a class="archive-post-title" href="/2023/02/09/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D10.%20%E9%A2%9C%E8%89%B2%E4%B8%8E%E6%84%9F%E7%9F%A5/">「现代计算机图形学入门」颜色与感知</a>
+        </li>
+    
+        
+            
+            
+                
+                </ul>
+            
+            <div class="archive-year"> 2022 </div>
+            <ul class="year-list">
+            
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">12/14</span>
+            <a class="archive-post-title" href="/2022/12/14/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D9.%20%E7%9B%B8%E6%9C%BA,%20%E9%80%8F%E9%95%9C%E4%B8%8E%E5%85%89%E5%9C%BA/">「现代计算机图形学入门」相机, 透镜与光场</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">12/11</span>
+            <a class="archive-post-title" href="/2022/12/11/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D8.%20%E6%B8%B2%E6%9F%93%E9%AB%98%E7%BA%A7%E8%AF%9D%E9%A2%98/">「现代计算机图形学入门」渲染高级主题</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">12/03</span>
+            <a class="archive-post-title" href="/2022/12/03/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D7.%20%E6%9D%90%E8%B4%A8%E4%B8%8E%E5%A4%96%E8%A7%82/">「现代计算机图形学入门」材质和外观</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">11/17</span>
+            <a class="archive-post-title" href="/2022/11/17/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A5-6%EF%BC%9AWhitted-Styled%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">「现代计算机图形学入门」Whitted-Styles光线追踪</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">11/05</span>
+            <a class="archive-post-title" href="/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D6.%20%E5%85%89%E7%BA%BF%E8%BF%BD%E8%B8%AA/">「现代计算机图形学入门」光线追踪</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">11/05</span>
+            <a class="archive-post-title" href="/2022/11/05/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D%E4%BD%9C%E4%B8%9A1-3%EF%BC%9A%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8%E4%B8%8E%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/">「现代计算机图形学入门」光栅化渲染器与渲染管线</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">10/30</span>
+            <a class="archive-post-title" href="/2022/10/30/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D5.%20%E5%87%A0%E4%BD%95/">「现代计算机图形学入门」几何</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">10/03</span>
+            <a class="archive-post-title" href="/2022/10/03/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D4.%20%E7%9D%80%E8%89%B2/">「现代计算机图形学入门」着色</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">09/15</span>
+            <a class="archive-post-title" href="/2022/09/15/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D3.%20%E5%85%89%E6%A0%85%E5%8C%96/">「现代计算机图形学入门」光栅化</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/13</span>
+            <a class="archive-post-title" href="/2022/03/13/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D2.%20%E7%9F%A9%E9%98%B5%E5%8F%98%E6%8D%A2/">「现代计算机图形学入门」矩阵变换</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/10</span>
+            <a class="archive-post-title" href="/2022/03/10/%E3%80%8C%E7%8E%B0%E4%BB%A3%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%85%A5%E9%97%A8%E3%80%8D1.%20%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">「现代计算机图形学入门」线性代数</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8CC++%E3%80%8DC++%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/">「C++」C++知识点总结（待完善）</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8C%E6%9D%82%E8%B0%88%E3%80%8D%E5%85%B3%E4%BA%8E%E5%85%B3%E4%BA%8E%E5%8F%B3%E6%89%8B%E5%9D%90%E6%A0%87%E7%B3%BB%E4%B8%8B%E7%BB%95y%E8%BD%B4%E6%97%8B%E8%BD%AC%E7%9A%84%E7%9F%A9%E9%98%B5Ry%E2%80%9C%E4%B8%8D%E5%A4%AA%E4%B8%80%E6%A0%B7%E2%80%9D%E7%9A%84%E6%80%9D%E8%80%83/">「图形学」关于右手坐标系下绕y轴旋转的矩阵Ry“不太一样”的思考</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8C%E6%9D%82%E8%B0%88%E3%80%8DHexo%20Next%E4%B8%BB%E9%A2%98%E9%85%8D%E7%BD%AEMathjax%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9Apandoc%20exited%20with%20code%20null/">「博客搭建」Hexo Next主题配置Mathjax遇到的问题：pandoc exited with code null</a>
+        </li>
+    
+        
+        <li class="archive-post-item">
+            <span class="archive-post-date">02/28</span>
+            <a class="archive-post-title" href="/2022/02/28/%E3%80%8C%E7%AE%97%E6%B3%95%E7%AC%94%E8%AE%B0%E6%9C%AC%E3%80%8D%E5%BF%AB%E6%85%A2%E6%8C%87%E9%92%88/">「算法笔记本」快慢指针</a>
+        </li>
+    
+    </div>
+</div>
+
+        <div class="sidebar-panel-tags">
+    <div class="sidebar-tags-name">
+        
+            <span class="sidebar-tag-name" data-tags="NORI">
+                <span class="iconfont-archer">&#xe606;</span>
+                NORI
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="C++">
+                <span class="iconfont-archer">&#xe606;</span>
+                C++
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="图形学">
+                <span class="iconfont-archer">&#xe606;</span>
+                图形学
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="博客搭建">
+                <span class="iconfont-archer">&#xe606;</span>
+                博客搭建
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="现代计算机图形学入门">
+                <span class="iconfont-archer">&#xe606;</span>
+                现代计算机图形学入门
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="算法笔记本">
+                <span class="iconfont-archer">&#xe606;</span>
+                算法笔记本
+            </span>
+        
+            <span class="sidebar-tag-name" data-tags="高质量实时渲染">
+                <span class="iconfont-archer">&#xe606;</span>
+                高质量实时渲染
+            </span>
+        
+    </div>
+    <div class="iconfont-archer sidebar-tags-empty">&#xe678;</div>
+    <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
+        缺失模块，请参考主题文档进行安装配置：https://github.com/fi3ework/hexo-theme-archer#%E5%AE%89%E8%A3%85%E4%B8%BB%E9%A2%98
+    </div> 
+    <div class="sidebar-tags-list"></div>
+</div>
+
+        <div class="sidebar-panel-categories">
+    <div class="sidebar-categories-name">
+    
+    </div>
+    <div class="iconfont-archer sidebar-categories-empty">&#xe678;</div>
+    <div class="sidebar-categories-list"></div>
+</div>
+
+    </div>
+</div>
+
+        <!-- site-meta -->
+        <script>
+    var siteMetaRoot = "/"
+    if (siteMetaRoot === "undefined") {
+        siteMetaRoot = '/'
+    }
+    var siteMeta = {
+        url: "https://nathanielfeng.github.io",
+        root: siteMetaRoot,
+        author: "Jannish"
+    }
+</script>
+
+        <!-- import experimental options here -->
+        <!-- Custom Font -->
+
+
+        <!-- main func -->
+        <script src="/scripts/main.js?v=20211217"></script>
+        <!-- dark mode -->
+        <script src="/scripts/dark.js?v=20211217"></script>
+        <!-- fancybox -->
+        <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" defer></script>
+        <!-- algolia -->
+        
+        <!-- busuanzi -->
+        
+            <script src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+        
+        <!-- CNZZ -->
+        
+        <!-- async load share.js -->
+        
+            <script src="/scripts/share.js?v=20211217" async></script>
+        
+        <!-- mermaid -->
+        
+    </body>
+</html>
